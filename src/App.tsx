@@ -1,26 +1,125 @@
-import React from 'react';
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 
-function App() {
-  return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.tsx</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
-    </div>
-  );
-}
+import Login from "./pages/auth/Login";
+import Register from "./pages/auth/Register";
+
+import CandidateDashboard from "./pages/candidate/CandidateDashboard";
+import Jobs from "./pages/candidate/Jobs";
+import MyApplications from "./pages/candidate/MyApplications";
+
+import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard";
+import Navbar from "./components/Navbar";
+
+import { getToken } from "./services/authService";
+
+const App: React.FC = () => {
+
+    const token = getToken();
+
+    return (
+        <BrowserRouter>
+
+            {token && <Navbar />}
+
+            <Routes>
+
+                {/* AUTH */}
+
+                <Route
+                    path="/login"
+                    element={<Login />}
+                />
+
+                <Route
+                    path="/register"
+                    element={<Register />}
+                />
+
+
+                {/* CANDIDATE */}
+
+                <Route
+                    path="/candidate/dashboard"
+                    element={
+                        token
+                            ? <CandidateDashboard />
+                            : <Navigate to="/login" />
+                    }
+                />
+
+                <Route
+                    path="/candidate/jobs"
+                    element={
+                        token
+                            ? <Jobs />
+                            : <Navigate to="/login" />
+                    }
+                />
+
+                <Route
+                    path="/candidate/jobs/:jobId"
+                    element={
+                        token
+                            ? <Jobs />
+                            : <Navigate to="/login" />
+                    }
+                />
+
+                <Route
+                    path="/candidate/applications"
+                    element={
+                        token
+                            ? <MyApplications />
+                            : <Navigate to="/login" />
+                    }
+                />
+
+
+                {/* RECRUITER */}
+
+                <Route
+                    path="/recruiter/dashboard"
+                    element={
+                        token
+                            ? <RecruiterDashboard />
+                            : <Navigate to="/login" />
+                    }
+                />
+
+
+                {/* DEFAULT */}
+
+                <Route
+                    path="/"
+                    element={
+                        <Navigate
+                            to={
+                                token
+                                    ? "/candidate/jobs"
+                                    : "/login"
+                            }
+                        />
+                    }
+                />
+
+                <Route
+                    path="*"
+                    element={
+                        <Navigate
+                            to={
+                                token
+                                    ? "/candidate/jobs"
+                                    : "/login"
+                            }
+                        />
+                    }
+                />
+
+            </Routes>
+
+        </BrowserRouter>
+    );
+};
 
 export default App;
