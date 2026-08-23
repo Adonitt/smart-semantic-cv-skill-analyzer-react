@@ -17,7 +17,7 @@ export const applyToJob = async (
 ): Promise<Application> => {
 
     const response = await api.post<Application>(
-        `/candidate/jobs/${jobId}/apply`,
+        `/jobs/${jobId}/apply`,
         data
     );
 
@@ -32,7 +32,7 @@ export const applyToJob = async (
 export const getMyApplications = async (): Promise<Application[]> => {
 
     const response = await api.get<Application[]>(
-        "/candidate/applications"
+        "/jobs/candidate/applications"
     );
 
     return response.data;
@@ -48,7 +48,7 @@ export const getApplicationsForJob = async (
 ): Promise<Application[]> => {
 
     const response = await api.get<Application[]>(
-        `/recruiter/jobs/${jobId}/applications`
+        `/jobs/recruiter/jobs/${jobId}/applications`
     );
 
     return response.data;
@@ -64,8 +64,8 @@ export const updateApplicationStatus = async (
     status: ApplicationStatus
 ): Promise<void> => {
 
-    await api.put(
-        `/recruiter/applications/${applicationId}/status`,
+    await api.patch(
+        `/jobs/recruiter/applications/${applicationId}/status`,
         null,
         {
             params: {
@@ -85,7 +85,7 @@ export const getApplicationsWithCandidate = async (
 ): Promise<Application[]> => {
 
     const response = await api.get<Application[]>(
-        `/recruiter/jobs/${jobId}/applications/details`
+        `/jobs/recruiter/jobs/${jobId}/applications/details`
     );
 
     return response.data;

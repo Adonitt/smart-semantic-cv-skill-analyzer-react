@@ -43,28 +43,27 @@ export interface Job {
 
     location: string;
 
-    employmentType: EmploymentType;
-    experienceLevel: ExperienceLevel;
+    employmentType: string;
+    experienceLevel: string;
 
     salaryMin: number;
     salaryMax: number;
 
     applicationDeadline: string;
 
-    status: JobStatus;
+    status: string;
 
     companyName: string;
     companyWebsite?: string;
 
-    // =================================================
-    // AI MATCHING
-    // =================================================
-
+    // AI Matching
     matchPercentage?: number | null;
 
-    matchedSkills?: string[] | null;
+    matchedSkills?: string[];
 
-    missingSkills?: string[] | null;
+    missingSkills?: string[];
+
+    candidateSkills?: string[];
 }
 
 

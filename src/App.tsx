@@ -12,6 +12,8 @@ import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard";
 import Navbar from "./components/Navbar";
 
 import { getToken } from "./services/authService";
+import JobDetails from "./pages/candidate/JobDetails";
+import CandidateProfile from "./pages/candidate/CandidateProfile";
 
 const App: React.FC = () => {
 
@@ -57,14 +59,14 @@ const App: React.FC = () => {
                     }
                 />
 
-                <Route
-                    path="/candidate/jobs/:jobId"
-                    element={
-                        token
-                            ? <Jobs />
-                            : <Navigate to="/login" />
-                    }
-                />
+                {/*<Route*/}
+                {/*    path="/candidate/jobs/:id"*/}
+                {/*    element={*/}
+                {/*        token*/}
+                {/*            ? <JobDetails />*/}
+                {/*            : <Navigate to="/login" />*/}
+                {/*    }*/}
+                {/*/>*/}
 
                 <Route
                     path="/candidate/applications"
@@ -86,7 +88,10 @@ const App: React.FC = () => {
                             : <Navigate to="/login" />
                     }
                 />
-
+                <Route
+                    path="/profile"
+                    element={<CandidateProfile />}
+                />
 
                 {/* DEFAULT */}
 

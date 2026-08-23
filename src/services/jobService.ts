@@ -11,7 +11,7 @@ import type {
 
 export const getPublishedJobs = async (): Promise<Job[]> => {
     const response = await api.get<Job[]>(
-        "/candidate/jobs"
+        "/jobs"
     );
 
     return response.data;
@@ -26,7 +26,7 @@ export const getJobById = async (
 ): Promise<Job> => {
 
     const response = await api.get<Job>(
-        `/candidate/jobs/${jobId}`
+        `/jobs/${jobId}`
     );
 
     return response.data;
