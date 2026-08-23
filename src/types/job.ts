@@ -61,6 +61,10 @@ export interface Job {
 
     matchedSkills?: string[];
 
+    relatedSkills?: string[];
+
+    candidateLanguages?: string[];
+
     missingSkills?: string[];
 
     candidateSkills?: string[];

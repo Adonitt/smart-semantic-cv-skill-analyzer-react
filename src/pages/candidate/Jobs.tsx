@@ -12,6 +12,8 @@ import JobDetails from "./JobDetails";
 import api from "../../services/api";
 import axios from "axios";
 
+const JOBS_PER_PAGE = 9;
+
 const Jobs: React.FC = () => {
 
     const [jobs, setJobs] = useState<Job[]>([]);
@@ -19,6 +21,8 @@ const Jobs: React.FC = () => {
     const [error, setError] = useState("");
 
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+
+    const [currentPage, setCurrentPage] = useState(1);
 
     // IDs of jobs where current candidate already applied
     const [appliedJobIds, setAppliedJobIds] = useState<number[]>([]);
@@ -33,6 +37,22 @@ const Jobs: React.FC = () => {
             maxSalary: undefined,
             sortBy: "MATCH",
         });
+
+    const totalPages = Math.ceil(jobs.length / JOBS_PER_PAGE);
+    const firstJobIndex = (currentPage - 1) * JOBS_PER_PAGE;
+    const visibleJobs = jobs.slice(
+        firstJobIndex,
+        firstJobIndex + JOBS_PER_PAGE
+    );
+
+    // Keep the selected page valid when a filter reduces the result count.
+    useEffect(() => {
+        if (totalPages === 0) {
+            setCurrentPage(1);
+        } else if (currentPage > totalPages) {
+            setCurrentPage(totalPages);
+        }
+    }, [currentPage, totalPages]);
 
 
     // =====================================================
@@ -104,6 +124,7 @@ const Jobs: React.FC = () => {
                 : await getPublishedJobs();
 
             setJobs(data);
+            setCurrentPage(1);
 
         } catch (err) {
 
@@ -178,6 +199,7 @@ const Jobs: React.FC = () => {
 
         e.preventDefault();
 
+        setCurrentPage(1);
         loadJobs();
 
     };
@@ -200,6 +222,7 @@ const Jobs: React.FC = () => {
         };
 
         setFilters(defaultFilters);
+        setCurrentPage(1);
 
         try {
 
@@ -573,7 +596,11 @@ const Jobs: React.FC = () => {
                         </h5>
 
                         <span className="text-muted">
-                            {jobs.length} jobs found
+                            Showing {firstJobIndex + 1}-
+                            {Math.min(
+                                firstJobIndex + JOBS_PER_PAGE,
+                                jobs.length
+                            )} of {jobs.length} jobs
                         </span>
 
                     </div>
@@ -581,7 +608,7 @@ const Jobs: React.FC = () => {
 
                     <div className="row g-4">
 
-                        {jobs.map((job) => (
+                        {visibleJobs.map((job) => (
 
                             <div
                                 className="col-md-6 col-lg-4"
@@ -603,6 +630,93 @@ const Jobs: React.FC = () => {
                         ))}
 
                     </div>
+
+                    {totalPages > 1 && (
+                        <nav
+                            className="mt-4"
+                            aria-label="Jobs pagination"
+                        >
+                            <ul className="pagination justify-content-center flex-wrap mb-0">
+                                <li
+                                    className={`page-item ${
+                                        currentPage === 1
+                                            ? "disabled"
+                                            : ""
+                                    }`}
+                                >
+                                    <button
+                                        type="button"
+                                        className="page-link"
+                                        onClick={() =>
+                                            setCurrentPage((page) =>
+                                                Math.max(1, page - 1)
+                                            )
+                                        }
+                                        disabled={currentPage === 1}
+                                        aria-label="Previous page"
+                                    >
+                                        Previous
+                                    </button>
+                                </li>
+
+                                {Array.from(
+                                    { length: totalPages },
+                                    (_, index) => index + 1
+                                ).map((page) => (
+                                    <li
+                                        key={page}
+                                        className={`page-item ${
+                                            currentPage === page
+                                                ? "active"
+                                                : ""
+                                        }`}
+                                    >
+                                        <button
+                                            type="button"
+                                            className="page-link"
+                                            onClick={() =>
+                                                setCurrentPage(page)
+                                            }
+                                            aria-current={
+                                                currentPage === page
+                                                    ? "page"
+                                                    : undefined
+                                            }
+                                        >
+                                            {page}
+                                        </button>
+                                    </li>
+                                ))}
+
+                                <li
+                                    className={`page-item ${
+                                        currentPage === totalPages
+                                            ? "disabled"
+                                            : ""
+                                    }`}
+                                >
+                                    <button
+                                        type="button"
+                                        className="page-link"
+                                        onClick={() =>
+                                            setCurrentPage((page) =>
+                                                Math.min(
+                                                    totalPages,
+                                                    page + 1
+                                                )
+                                            )
+                                        }
+                                        disabled={
+                                            currentPage === totalPages
+                                        }
+                                        aria-label="Next page"
+                                    >
+                                        Next
+                                    </button>
+                                </li>
+                            </ul>
+                        </nav>
+                    )}
 
                 </>
 

@@ -459,6 +459,38 @@ const JobDetails: React.FC<JobDetailsProps> = ({
 
                                         {/* ================= REQUIRED SKILLS ================= */}
 
+                                        {job.candidateLanguages &&
+                                            job.candidateLanguages.length > 0 && (
+
+                                                <div className="mb-4">
+
+                                                    <h6 className="fw-bold mb-2">
+                                                        🌐 Languages
+                                                    </h6>
+
+                                                    <div className="d-flex flex-wrap gap-2">
+
+                                                        {job.candidateLanguages.map(
+                                                            (language, index) => (
+
+                                                                <span
+                                                                    key={index}
+                                                                    className="badge bg-info text-dark"
+                                                                >
+                                                                    {language}
+                                                                </span>
+
+                                                            )
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+                                            )}
+
+
+                                        {/* ================= REQUIRED SKILLS ================= */}
+
                                         <div className="mb-4">
 
                                             <h6 className="fw-bold mb-2">
@@ -524,6 +556,43 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                                                 >
                                             ✓ {skill}
                                         </span>
+
+                                                            )
+                                                        )}
+
+                                                    </div>
+
+                                                </div>
+                                            )}
+
+
+                                        {/* ================= MISSING SKILLS ================= */}
+
+                                        {job.relatedSkills &&
+                                            job.relatedSkills.length > 0 && (
+
+                                                <div className="mb-4">
+
+                                                    <h6 className="fw-bold text-warning mb-2">
+                                                        ~ Related Skills
+                                                    </h6>
+
+                                                    <p className="text-muted small mb-2">
+                                                        Skills with related semantic evidence;
+                                                        verify them in the CV.
+                                                    </p>
+
+                                                    <div className="d-flex flex-wrap gap-2">
+
+                                                        {job.relatedSkills.map(
+                                                            (skill, index) => (
+
+                                                                <span
+                                                                    key={index}
+                                                                    className="badge bg-warning text-dark"
+                                                                >
+                                                                    ~ {skill}
+                                                                </span>
 
                                                             )
                                                         )}
