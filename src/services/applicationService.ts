@@ -38,6 +38,23 @@ export const getMyApplications = async (): Promise<Application[]> => {
     return response.data;
 };
 
+// =====================================================
+// CANDIDATE - UPDATE COVER LETTER
+// =====================================================
+
+export const updateApplicationCoverLetter = async (
+    applicationId: number,
+    coverLetter: string
+): Promise<Application> => {
+
+    const response = await api.patch<Application>(
+        `/jobs/candidate/applications/${applicationId}/cover-letter`,
+        { coverLetter }
+    );
+
+    return response.data;
+};
+
 
 // =====================================================
 // RECRUITER - APPLICATIONS FOR JOB

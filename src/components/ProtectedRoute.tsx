@@ -21,8 +21,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
 
     if (
         allowedRoles &&
-        role &&
-        !allowedRoles.includes(role)
+        (!role || !allowedRoles.includes(role))
     ) {
         if (role === "CANDIDATE") {
             return (
@@ -37,6 +36,15 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
             return (
                 <Navigate
                     to="/recruiter/dashboard"
+                    replace
+                />
+            );
+        }
+
+        if (role === "ADMIN") {
+            return (
+                <Navigate
+                    to="/admin/dashboard"
                     replace
                 />
             );

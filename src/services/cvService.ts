@@ -35,3 +35,14 @@ export const getMyCv = async (): Promise<Blob> => {
     return response.data;
 };
 
+export const getCandidateCv = async (candidateId: number): Promise<Blob> => {
+    const response = await api.get(
+        `/cv/candidate/${candidateId}`,
+        {
+            responseType: "blob",
+        }
+    );
+
+    return response.data;
+};
+

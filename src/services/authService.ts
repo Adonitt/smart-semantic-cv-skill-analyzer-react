@@ -77,6 +77,13 @@ export const getRole = (): string | null => {
     return localStorage.getItem("role");
 };
 
+export const getRoleHomePath = (role: string | null): string => {
+    if (role === "CANDIDATE") return "/candidate/dashboard";
+    if (role === "RECRUITER") return "/recruiter/dashboard";
+    if (role === "ADMIN") return "/admin/dashboard";
+    return "/login";
+};
+
 // =====================================================
 // LOGOUT
 // =====================================================

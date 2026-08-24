@@ -1,10 +1,14 @@
 import React from "react";
 import {
-    Briefcase,
-    Clock,
+    ArrowUpRight,
+    BriefcaseBusiness,
+    Building2,
+    Clock3,
     MapPin,
-    Star,
+    Sparkles,
+    WalletCards,
 } from "lucide-react";
+
 import type { Job } from "../types/job";
 
 interface JobCardProps {
@@ -13,161 +17,97 @@ interface JobCardProps {
     hasApplied: boolean;
 }
 
-const JobCard: React.FC<JobCardProps> = ({
-                                             job,
-                                             onDetails,
-                                             hasApplied,
-                                         }) => {
+const formatLabel = (value?: string | null) => {
+    if (!value) return "Not specified";
+
+    return value
+        .toLowerCase()
+        .split("_")
+        .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(" ");
+};
+
+const formatMoney = (value?: number | null) => {
+    if (value === null || value === undefined) return "Not specified";
+
+    return new Intl.NumberFormat("en-US", {
+        maximumFractionDigits: 0,
+    }).format(value);
+};
+
+const JobCard: React.FC<JobCardProps> = ({ job, onDetails, hasApplied }) => {
+    const skills = (job.matchedSkills?.length
+        ? job.matchedSkills
+        : (job.skills || "").split(/[,;\n]+/).map((skill) => skill.trim()).filter(Boolean)
+    ).slice(0, 3);
 
     return (
-
-        <div className="card border-0 shadow-sm h-100">
-
-            <div className="card-body p-4">
-
-                {/* HEADER */}
-
-                <div className="d-flex justify-content-between align-items-start mb-3">
-
-                    <div>
-
-                        <h5 className="fw-bold mb-1">
-                            {job.title}
-                        </h5>
-
-                        <p className="text-muted mb-0">
-                            {job.companyName}
-                        </p>
-
-                    </div>
-
-
-                    {job.matchPercentage !== null &&
-                        job.matchPercentage !== undefined && (
-
-                            <span className="badge bg-success fs-6">
-                                {job.matchPercentage.toFixed(1)}%
-                                Match
-                            </span>
-
-                        )}
-
+        <article className="job-card">
+            <div className="job-card-inner">
+                <div className="job-card-topline">
+                    <span className="job-card-company">
+                        <Building2 size={14} aria-hidden="true" />
+                        {job.companyName || "Company"}
+                    </span>
+                    {job.matchPercentage !== null && job.matchPercentage !== undefined && (
+                        <span className="job-card-match">
+                            <Sparkles size={13} aria-hidden="true" />
+                            {job.matchPercentage.toFixed(0)}% match
+                        </span>
+                    )}
                 </div>
 
+                <h3 className="job-card-title">{job.title}</h3>
 
-                {/* INFORMATION */}
-
-                <div className="mb-3">
-
-                    <div className="d-flex align-items-center text-muted mb-2">
-
-                        <MapPin
-                            size={16}
-                            className="me-2"
-                        />
-
-                        {job.location}
-
-                    </div>
-
-
-                    <div className="d-flex align-items-center text-muted mb-2">
-
-                        <Briefcase
-                            size={16}
-                            className="me-2"
-                        />
-
-                        {job.employmentType}
-
-                    </div>
-
-
-                    <div className="d-flex align-items-center text-muted">
-
-                        <Clock
-                            size={16}
-                            className="me-2"
-                        />
-
-                        {job.experienceLevel}
-
-                    </div>
-
+                <div className="job-card-meta">
+                    <span><MapPin size={14} aria-hidden="true" />{job.location || "Location not specified"}</span>
+                    <span><BriefcaseBusiness size={14} aria-hidden="true" />{formatLabel(job.employmentType)}</span>
+                    <span><Clock3 size={14} aria-hidden="true" />{formatLabel(job.experienceLevel)}</span>
                 </div>
 
-
-                {/* DESCRIPTION */}
-
-                <p className="text-muted">
-
-                    {job.description?.length > 120
-                        ? `${job.description.substring(
-                            0,
-                            120
-                        )}...`
-                        : job.description}
-
+                <p className="job-card-description">
+                    {job.description?.length > 130
+                        ? `${job.description.substring(0, 130)}…`
+                        : job.description || "No description provided."}
                 </p>
 
-
-                {/* FOOTER */}
-
-                <div className="d-flex justify-content-between align-items-center mt-4">
-
-                    <div>
-
-                        <Star
-                            size={16}
-                            className="me-1 text-warning"
-                        />
-
-                        <span className="fw-semibold">
-                            {job.salaryMin} -{" "}
-                            {job.salaryMax}
-                        </span>
-
-                    </div>
-
-
-                    <div className="d-flex gap-2">
-
-                        <button
-                            className="btn btn-outline-primary"
-                            onClick={() =>
-                                onDetails(job)
-                            }
-                        >
-                            Details
-                        </button>
-
-
-                        {hasApplied ? (
-
-                            <span className="badge bg-success d-flex align-items-center px-3">
-                                Applied ✓
-                            </span>
-
-                        ) : (
-
-                            <button
-                                className="btn btn-primary"
-                                onClick={() =>
-                                    onDetails(job)
-                                }
-                            >
-                                Apply
-                            </button>
-
+                {skills.length > 0 && (
+                    <div className="job-card-skills" aria-label="Relevant skills">
+                        {skills.map((skill, index) => (
+                            <span key={`${skill}-${index}`}>{skill}</span>
+                        ))}
+                        {(job.matchedSkills?.length || 0) > 3 && (
+                            <span>+{job.matchedSkills!.length - 3}</span>
                         )}
+                    </div>
+                )}
 
+                <div className="job-card-footer">
+                    <div className="job-card-salary">
+                        <WalletCards size={16} aria-hidden="true" />
+                        <div>
+                            <small>Salary range</small>
+                            <strong>{formatMoney(job.salaryMin)} – {formatMoney(job.salaryMax)}</strong>
+                        </div>
                     </div>
 
+                    <div className="job-card-actions">
+                        <button type="button" className="job-card-secondary" onClick={() => onDetails(job)}>
+                            Details
+                            <ArrowUpRight size={15} aria-hidden="true" />
+                        </button>
+                        {hasApplied ? (
+                            <span className="job-card-applied">Applied <span aria-hidden="true">✓</span></span>
+                        ) : (
+                            <button type="button" className="job-card-primary" onClick={() => onDetails(job)}>
+                                Apply
+                                <ArrowUpRight size={15} aria-hidden="true" />
+                            </button>
+                        )}
+                    </div>
                 </div>
-
             </div>
-
-        </div>
+        </article>
     );
 };
 

@@ -28,6 +28,17 @@ export type JobStatus =
     | "PUBLISHED"
     | "CLOSED";
 
+export type SkillImportance =
+    | "MUST_HAVE"
+    | "IMPORTANT"
+    | "NICE_TO_HAVE";
+
+export interface JobSkill {
+    name: string;
+    importance: SkillImportance;
+    displayOrder?: number;
+}
+
 
 // =====================================================
 // JOB
@@ -40,6 +51,7 @@ export interface Job {
     description: string;
     requirements: string;
     skills: string;
+    skillRequirements?: JobSkill[];
 
     location: string;
 
@@ -53,11 +65,21 @@ export interface Job {
 
     status: string;
 
+    createdAt?: string;
+    updatedAt?: string;
+
     companyName: string;
     companyWebsite?: string;
 
     // AI Matching
     matchPercentage?: number | null;
+
+    skillCoverage?: number;
+    weightedSkillScore?: number;
+    overallSimilarity?: number;
+    scoringMethod?: string;
+    skillScoreWeight?: number;
+    semanticScoreWeight?: number;
 
     matchedSkills?: string[];
 
@@ -68,6 +90,13 @@ export interface Job {
     missingSkills?: string[];
 
     candidateSkills?: string[];
+
+    requiredSkills?: string[];
+    skillScores?: Record<string, number>;
+    skillWeights?: Record<string, number>;
+    skillImportance?: Record<string, string>;
+    skillEvidence?: Record<string, string>;
+    skillMatchTypes?: Record<string, string>;
 }
 
 
@@ -117,6 +146,8 @@ export interface CreateJobRequest {
 
     skills: string;
 
+    skillRequirements: JobSkill[];
+
     location: string;
 
     employmentType: EmploymentType;
@@ -128,6 +159,10 @@ export interface CreateJobRequest {
     salaryMax: number;
 
     applicationDeadline: string;
+}
+
+export interface JobFormState extends CreateJobRequest {
+    status: JobStatus;
 }
 
 
@@ -146,6 +181,8 @@ export interface UpdateJobRequest {
 
     skills?: string;
 
+    skillRequirements?: JobSkill[];
+
     location?: string;
 
     employmentType?: EmploymentType;
@@ -157,4 +194,6 @@ export interface UpdateJobRequest {
     salaryMax?: number;
 
     applicationDeadline?: string;
+
+    status?: JobStatus;
 }

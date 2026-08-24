@@ -21,6 +21,12 @@ export interface RecruiterProfile {
     positionTitle?: string | null;
 }
 
+export interface RecruiterProfileUpdateRequest {
+    companyName: string;
+    companyWebsite: string;
+    positionTitle: string;
+}
+
 export interface UserDetails {
     id: number;
     email: string;
@@ -30,4 +36,12 @@ export interface UserDetails {
 
     candidateProfile?: CandidateProfile | null;
     recruiterProfile?: RecruiterProfile | null;
+}
+
+export interface UserList {
+    id: number;
+    fullName: string;
+    email: string;
+    role: RoleEnum;
+    createdAt: string;
 }

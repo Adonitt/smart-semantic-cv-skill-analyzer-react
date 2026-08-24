@@ -10,7 +10,6 @@ import type {
 } from "../../types/job";
 import JobDetails from "./JobDetails";
 import api from "../../services/api";
-import axios from "axios";
 
 const JOBS_PER_PAGE = 9;
 
@@ -46,6 +45,10 @@ const Jobs: React.FC = () => {
     );
 
     // Keep the selected page valid when a filter reduces the result count.
+    // The initial request should use the default filter snapshot only. Later
+    // requests are explicit through submit/reset, so this effect intentionally
+    // runs once rather than every time a filter field changes.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     useEffect(() => {
         if (totalPages === 0) {
             setCurrentPage(1);
@@ -159,7 +162,7 @@ const Jobs: React.FC = () => {
 
         loadData();
 
-    }, []);
+    }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
 
     // =====================================================
@@ -277,31 +280,34 @@ const Jobs: React.FC = () => {
     // =====================================================
 
     return (
-        <div className="container py-5">
+        <main className="jobs-page">
+        <div className="container jobs-container">
 
             {/* HEADER */}
 
-            <div className="mb-4">
+            <div className="jobs-page-header">
 
-                <h2 className="fw-bold">
-                    Find Jobs
-                </h2>
+                <div>
+                    <span className="jobs-eyebrow">Candidate workspace</span>
+                    <h1>Find your next opportunity</h1>
 
-                <p className="text-muted">
-                    Discover jobs that match your skills and
-                    experience.
-                </p>
+                    <p>Explore roles that match your skills, preferences and experience.</p>
+                </div>
+                <div className="jobs-page-badge">
+                    <span>AI-assisted</span>
+                    <small>skill matching</small>
+                </div>
 
             </div>
 
 
             {/* FILTERS */}
 
-            <div className="card border-0 shadow-sm mb-4">
+            <section className="jobs-filter-card">
 
-                <div className="card-body p-4">
+                <div className="jobs-filter-inner">
 
-                    <form onSubmit={handleSubmit}>
+                    <form className="jobs-filter-form" onSubmit={handleSubmit}>
 
                         <div className="row g-3">
 
@@ -511,14 +517,14 @@ const Jobs: React.FC = () => {
 
                                 <button
                                     type="submit"
-                                    className="btn btn-primary flex-grow-1"
+                                    className="btn jobs-submit flex-grow-1"
                                 >
                                     Search
                                 </button>
 
                                 <button
                                     type="button"
-                                    className="btn btn-outline-secondary"
+                                    className="btn jobs-reset"
                                     onClick={resetFilters}
                                 >
                                     Reset
@@ -532,13 +538,13 @@ const Jobs: React.FC = () => {
 
                 </div>
 
-            </div>
+            </section>
 
 
             {/* ERROR */}
 
             {error && (
-                <div className="alert alert-danger">
+                <div className="jobs-alert" role="alert">
                     {error}
                 </div>
             )}
@@ -548,7 +554,7 @@ const Jobs: React.FC = () => {
 
             {loading && (
 
-                <div className="text-center py-5">
+                <div className="jobs-state">
 
                     <div
                         className="spinner-border text-primary"
@@ -568,7 +574,7 @@ const Jobs: React.FC = () => {
 
             {!loading && jobs.length === 0 && (
 
-                <div className="text-center py-5">
+                <div className="jobs-empty-state">
 
                     <h5>
                         No jobs found
@@ -589,13 +595,13 @@ const Jobs: React.FC = () => {
 
                 <>
 
-                    <div className="d-flex justify-content-between align-items-center mb-3">
+                    <div className="jobs-results-header">
 
-                        <h5 className="fw-bold mb-0">
+                        <h2>
                             Available Jobs
-                        </h5>
+                        </h2>
 
-                        <span className="text-muted">
+                        <span className="jobs-results-count">
                             Showing {firstJobIndex + 1}-
                             {Math.min(
                                 firstJobIndex + JOBS_PER_PAGE,
@@ -606,12 +612,12 @@ const Jobs: React.FC = () => {
                     </div>
 
 
-                    <div className="row g-4">
+                    <div className="row g-4 jobs-grid">
 
                         {visibleJobs.map((job) => (
 
                             <div
-                                className="col-md-6 col-lg-4"
+                                className="col-md-6 col-lg-4 jobs-grid-item"
                                 key={job.id}
                             >
 
@@ -633,7 +639,7 @@ const Jobs: React.FC = () => {
 
                     {totalPages > 1 && (
                         <nav
-                            className="mt-4"
+                            className="jobs-pagination"
                             aria-label="Jobs pagination"
                         >
                             <ul className="pagination justify-content-center flex-wrap mb-0">
@@ -750,6 +756,7 @@ const Jobs: React.FC = () => {
             )}
 
         </div>
+        </main>
     );
 };
 

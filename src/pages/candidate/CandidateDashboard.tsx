@@ -1,338 +1,267 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { FileCheck2, FileText, Search, UserRound, BriefcaseBusiness } from "lucide-react";
 import { Link } from "react-router-dom";
-import {
-    Briefcase,
-    FileText,
-    Search,
-    User
-} from "lucide-react";
 
 import { getPublishedJobs } from "../../services/jobService";
 import { getMyApplications } from "../../services/applicationService";
+import { getMyProfile } from "../../services/userService";
+import type { Application } from "../../types/application";
+import type { Job } from "../../types/job";
+import type { UserDetails } from "../../types/user";
+import {
+    DashboardShell,
+    EmptyState,
+    ErrorState,
+    formatDate,
+    MetricCard,
+    ProgressBar,
+    SectionCard,
+    StatusBadge,
+} from "../../components/dashboard/DashboardPrimitives";
+
+interface CandidateDashboardData {
+    jobs: Job[] | null;
+    applications: Application[] | null;
+    profile: UserDetails | null;
+}
 
 const CandidateDashboard: React.FC = () => {
+    const fullName = localStorage.getItem("fullName") || "Candidate";
+    const email = localStorage.getItem("email") || "";
 
-    const fullName =
-        localStorage.getItem("fullName") || "Candidate";
+    const [data, setData] = useState<CandidateDashboardData>({
+        jobs: null,
+        applications: null,
+        profile: null,
+    });
+    const [loading, setLoading] = useState(true);
+    const [hasError, setHasError] = useState(false);
 
-    const [jobCount, setJobCount] = useState<number>(0);
-    const [applicationCount, setApplicationCount] =
-        useState<number>(0);
+    const loadDashboardData = useCallback(async () => {
+        setLoading(true);
+        setHasError(false);
 
-    const [loadingJobs, setLoadingJobs] =
-        useState<boolean>(true);
+        const [jobsResult, applicationsResult, profileResult] =
+            await Promise.allSettled([
+                getPublishedJobs(),
+                getMyApplications(),
+                getMyProfile(),
+            ]);
 
-    const [loadingApplications, setLoadingApplications] =
-        useState<boolean>(true);
+        setData({
+            jobs:
+                jobsResult.status === "fulfilled"
+                    ? jobsResult.value
+                    : null,
+            applications:
+                applicationsResult.status === "fulfilled"
+                    ? applicationsResult.value
+                    : null,
+            profile:
+                profileResult.status === "fulfilled"
+                    ? profileResult.value
+                    : null,
+        });
 
-    useEffect(() => {
-
-        loadDashboardData();
-
+        setHasError(
+            jobsResult.status === "rejected" ||
+                applicationsResult.status === "rejected" ||
+                profileResult.status === "rejected"
+        );
+        setLoading(false);
     }, []);
 
-    const loadDashboardData = async () => {
+    useEffect(() => {
+        void loadDashboardData();
+    }, [loadDashboardData]);
 
-        // =====================================================
-        // LOAD PUBLISHED JOBS
-        // =====================================================
+    const recentApplications = useMemo(
+        () =>
+            [...(data.applications || [])]
+                .sort(
+                    (first, second) =>
+                        new Date(second.appliedAt).getTime() -
+                        new Date(first.appliedAt).getTime()
+                )
+                .slice(0, 5),
+        [data.applications]
+    );
 
-        try {
+    const profileCompletion = useMemo(() => {
+        if (!data.profile) return null;
 
-            const jobs = await getPublishedJobs();
+        const profile = data.profile.candidateProfile;
+        const completedFields = [
+            Boolean(fullName),
+            Boolean(email),
+            Boolean(profile?.headline),
+            Boolean(profile?.industryDomain),
+            Boolean(profile?.cvFilePath),
+        ].filter(Boolean).length;
 
-            setJobCount(jobs.length);
+        return Math.round((completedFields / 5) * 100);
+    }, [data.profile, email, fullName]);
 
-        } catch (error) {
-
-            console.error(
-                "Failed to load published jobs:",
-                error
-            );
-
-            setJobCount(0);
-
-        } finally {
-
-            setLoadingJobs(false);
-        }
-
-
-        // =====================================================
-        // LOAD MY APPLICATIONS
-        // =====================================================
-
-        try {
-
-            const applications =
-                await getMyApplications();
-
-            setApplicationCount(
-                applications.length
-            );
-
-        } catch (error) {
-
-            console.error(
-                "Failed to load applications:",
-                error
-            );
-
-            setApplicationCount(0);
-
-        } finally {
-
-            setLoadingApplications(false);
-        }
-    };
-
+    const activeApplications = data.applications?.filter(
+        (application) =>
+            application.status !== "ACCEPTED" &&
+            application.status !== "REJECTED"
+    ).length;
 
     return (
-        <div className="container py-5">
+        <DashboardShell
+            eyebrow="Candidate workspace"
+            title={`Welcome, ${fullName}`}
+            description="Find relevant opportunities and follow every application from one place."
+            actions={
+                <Link to="/candidate/jobs" className="btn btn-primary">
+                    <Search size={17} aria-hidden="true" />
+                    Find jobs
+                </Link>
+            }
+        >
+            {hasError && (
+                <ErrorState
+                    message="Some values are temporarily unavailable. A dash means the API did not return that value; it is not treated as zero."
+                    onRetry={() => void loadDashboardData()}
+                />
+            )}
 
-            {/* ================================================= */}
-            {/* WELCOME */}
-            {/* ================================================= */}
-
-            <div className="mb-5">
-
-                <h2 className="fw-bold">
-                    Welcome, {fullName} 👋
-                </h2>
-
-                <p className="text-muted">
-                    Find your next opportunity and manage
-                    your applications.
-                </p>
-
+            <div className="dashboard-metrics">
+                <MetricCard
+                    label="Available jobs"
+                    value={loading ? "…" : data.jobs ? data.jobs.length : "—"}
+                    hint="Published positions"
+                    icon={<BriefcaseBusiness size={21} />}
+                    tone="blue"
+                />
+                <MetricCard
+                    label="My applications"
+                    value={
+                        loading
+                            ? "…"
+                            : data.applications
+                                ? data.applications.length
+                                : "—"
+                    }
+                    hint={
+                        activeApplications === undefined
+                            ? "Submitted applications"
+                            : `${activeApplications} currently active`
+                    }
+                    icon={<FileText size={21} />}
+                    tone="green"
+                />
+                <MetricCard
+                    label="Profile completeness"
+                    value={
+                        loading
+                            ? "…"
+                            : profileCompletion === null
+                                ? "—"
+                                : `${profileCompletion}%`
+                    }
+                    hint="CV and profile details"
+                    icon={<UserRound size={21} />}
+                    tone="amber"
+                />
             </div>
 
-
-            {/* ================================================= */}
-            {/* STATISTICS */}
-            {/* ================================================= */}
-
-            <div className="row g-4 mb-5">
-
-                {/* AVAILABLE JOBS */}
-
-                <div className="col-md-4">
-
-                    <div className="card border-0 shadow-sm h-100">
-
-                        <div className="card-body p-4">
-
-                            <div className="d-flex justify-content-between align-items-center">
-
-                                <div>
-
-                                    <p className="text-muted mb-1">
-                                        Available Jobs
-                                    </p>
-
-                                    <h3 className="fw-bold mb-0">
-
-                                        {loadingJobs
-                                            ? "..."
-                                            : jobCount}
-
-                                    </h3>
-
-                                </div>
-
-                                <div className="text-primary">
-
-                                    <Briefcase size={36} />
-
-                                </div>
-
-                            </div>
-
+            <div className="dashboard-grid">
+                <SectionCard
+                    title="Recent applications"
+                    description="Your five most recent submissions, sorted by date."
+                    actions={
+                        <Link to="/candidate/applications" className="dashboard-link">
+                            View all
+                        </Link>
+                    }
+                >
+                    {loading && <div className="dashboard-state">Loading applications…</div>}
+                    {!loading && data.applications === null && (
+                        <div className="dashboard-state">Applications are unavailable right now.</div>
+                    )}
+                    {!loading && data.applications && recentApplications.length === 0 && (
+                        <EmptyState
+                            title="No applications yet"
+                            description="When you apply for a job, its status and match details will appear here."
+                            action={
+                                <Link to="/candidate/jobs" className="btn btn-primary btn-sm">
+                                    Browse jobs
+                                </Link>
+                            }
+                        />
+                    )}
+                    {!loading && recentApplications.length > 0 && (
+                        <div className="dashboard-table-wrap">
+                            <table className="dashboard-table">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">Position</th>
+                                        <th scope="col">Applied</th>
+                                        <th scope="col">Status</th>
+                                        <th scope="col">AI match</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {recentApplications.map((application) => (
+                                        <tr key={application.id}>
+                                            <td>
+                                                <span className="dashboard-primary-cell">
+                                                    {application.jobTitle}
+                                                </span>
+                                                <span className="dashboard-secondary-cell">
+                                                    {application.companyName || "Company not provided"}
+                                                </span>
+                                            </td>
+                                            <td>{formatDate(application.appliedAt)}</td>
+                                            <td><StatusBadge status={application.status} /></td>
+                                            <td>
+                                                {application.matchPercentage === null ||
+                                                application.matchPercentage === undefined
+                                                    ? "Not available"
+                                                    : `${application.matchPercentage.toFixed(1)}%`}
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
                         </div>
+                    )}
+                </SectionCard>
 
+                <div className="d-grid gap-3">
+                    <div className="dashboard-callout">
+                        <h2>Make your profile stronger</h2>
+                        <p>
+                            A complete CV, headline and industry help recruiters understand your profile and make the matching result easier to interpret.
+                        </p>
+                        {profileCompletion === null ? (
+                            <div className="dashboard-state">Profile data unavailable.</div>
+                        ) : (
+                            <ProgressBar value={profileCompletion} label="Profile completeness" />
+                        )}
+                        <Link to="/profile" className="btn btn-outline-primary btn-sm mt-3">
+                            <FileCheck2 size={16} aria-hidden="true" />
+                            Update profile
+                        </Link>
                     </div>
 
-                </div>
-
-
-                {/* MY APPLICATIONS */}
-
-                <div className="col-md-4">
-
-                    <div className="card border-0 shadow-sm h-100">
-
-                        <div className="card-body p-4">
-
-                            <div className="d-flex justify-content-between align-items-center">
-
-                                <div>
-
-                                    <p className="text-muted mb-1">
-                                        My Applications
-                                    </p>
-
-                                    <h3 className="fw-bold mb-0">
-
-                                        {loadingApplications
-                                            ? "..."
-                                            : applicationCount}
-
-                                    </h3>
-
-                                </div>
-
-                                <div className="text-success">
-
-                                    <FileText size={36} />
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {/* PROFILE */}
-
-                <div className="col-md-4">
-
-                    <div className="card border-0 shadow-sm h-100">
-
-                        <div className="card-body p-4">
-
-                            <div className="d-flex justify-content-between align-items-center">
-
-                                <div>
-
-                                    <p className="text-muted mb-1">
-                                        Profile
-                                    </p>
-
-                                    <h3 className="fw-bold mb-0">
-                                        Candidate
-                                    </h3>
-
-                                </div>
-
-                                <div className="text-warning">
-
-                                    <User size={36} />
-
-                                </div>
-
-                            </div>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-            </div>
-
-
-            {/* ================================================= */}
-            {/* MAIN ACTIONS */}
-            {/* ================================================= */}
-
-            <div className="row g-4">
-
-
-                {/* ================================================= */}
-                {/* FIND JOBS */}
-                {/* ================================================= */}
-
-                <div className="col-md-6">
-
-                    <div className="card border-0 shadow-sm h-100">
-
-                        <div className="card-body p-4">
-
-                            <div className="d-flex align-items-center mb-3">
-
-                                <Search
-                                    size={30}
-                                    className="text-primary me-3"
-                                />
-
-                                <h4 className="fw-bold mb-0">
-                                    Find Jobs
-                                </h4>
-
-                            </div>
-
-                            <p className="text-muted">
-
-                                Explore available jobs and find
-                                positions that match your skills
-                                and experience.
-
-                            </p>
-
-                            <Link
-                                to="/candidate/jobs"
-                                className="btn btn-primary"
-                            >
-                                Browse Jobs
+                    <SectionCard title="Quick actions" description="Keep the next step visible.">
+                        <div className="d-grid gap-2 px-3 pb-3">
+                            <Link to="/candidate/jobs" className="btn btn-light text-start">
+                                <Search size={17} className="me-2" aria-hidden="true" />
+                                Search jobs
                             </Link>
-
-                        </div>
-
-                    </div>
-
-                </div>
-
-
-                {/* ================================================= */}
-                {/* APPLICATIONS */}
-                {/* ================================================= */}
-
-                <div className="col-md-6">
-
-                    <div className="card border-0 shadow-sm h-100">
-
-                        <div className="card-body p-4">
-
-                            <div className="d-flex align-items-center mb-3">
-
-                                <FileText
-                                    size={30}
-                                    className="text-success me-3"
-                                />
-
-                                <h4 className="fw-bold mb-0">
-                                    My Applications
-                                </h4>
-
-                            </div>
-
-                            <p className="text-muted">
-
-                                Track the jobs you have applied for
-                                and check your application status.
-
-                            </p>
-
-                            <Link
-                                to="/candidate/applications"
-                                className="btn btn-success"
-                            >
-                                View Applications
+                            <Link to="/candidate/applications" className="btn btn-light text-start">
+                                <FileText size={17} className="me-2" aria-hidden="true" />
+                                Review applications
                             </Link>
-
                         </div>
-
-                    </div>
-
+                    </SectionCard>
                 </div>
-
             </div>
-
-        </div>
+        </DashboardShell>
     );
 };
 

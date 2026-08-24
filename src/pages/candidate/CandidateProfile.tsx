@@ -1,6 +1,21 @@
-
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import axios from "axios";
+import { Link } from "react-router-dom";
+import {
+    ArrowRight,
+    BriefcaseBusiness,
+    CalendarDays,
+    Check,
+    CheckCircle2,
+    Eye,
+    FileText,
+    Mail,
+    Save,
+    Sparkles,
+    UploadCloud,
+    UserRound,
+} from "lucide-react";
+
 import api from "../../services/api";
 
 interface CandidateProfile {
@@ -20,31 +35,21 @@ interface UserDetails {
 }
 
 const CandidateProfilePage: React.FC = () => {
-
     const userId = localStorage.getItem("userId");
-
     const [user, setUser] = useState<UserDetails | null>(null);
-
+    const [fullName, setFullName] = useState("");
+    const [email, setEmail] = useState("");
     const [headline, setHeadline] = useState("");
     const [industryDomain, setIndustryDomain] = useState("");
-
     const [cvFile, setCvFile] = useState<File | null>(null);
-
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [uploading, setUploading] = useState(false);
     const [viewingCv, setViewingCv] = useState(false);
-
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
 
-
-    // =====================================================
-    // LOAD PROFILE
-    // =====================================================
-
-    const loadProfile = async () => {
-
+    const loadProfile = useCallback(async () => {
         if (!userId) {
             setError("User ID not found.");
             setLoading(false);
@@ -52,131 +57,117 @@ const CandidateProfilePage: React.FC = () => {
         }
 
         try {
-
             setLoading(true);
             setError("");
 
-            const response =
-                await api.get<UserDetails>(
-                    `/users/${userId}`
-                );
-
+            const response = await api.get<UserDetails>(`/users/${userId}`);
             setUser(response.data);
-
-            setHeadline(
-                response.data.candidateProfile?.headline || ""
+            setFullName(response.data.fullName || "");
+            setEmail(response.data.email || "");
+            setHeadline(response.data.candidateProfile?.headline || "");
+            setIndustryDomain(response.data.candidateProfile?.industryDomain || "");
+        } catch (requestError: unknown) {
+            console.error(requestError);
+            setError(
+                axios.isAxiosError(requestError)
+                    ? requestError.response?.data?.message || "Failed to load profile."
+                    : "Failed to load profile."
             );
-
-            setIndustryDomain(
-                response.data.candidateProfile?.industryDomain || ""
-            );
-
-        } catch (err: unknown) {
-
-            console.error(err);
-
-            if (axios.isAxiosError(err)) {
-
-                setError(
-                    err.response?.data?.message ||
-                    "Failed to load profile."
-                );
-
-            } else {
-
-                setError("Failed to load profile.");
-
-            }
-
         } finally {
-
             setLoading(false);
-
         }
-    };
-
-
-    // =====================================================
-    // LOAD PROFILE ON PAGE OPEN
-    // =====================================================
-
-    useEffect(() => {
-
-        loadProfile();
-
     }, [userId]);
 
+    useEffect(() => {
+        void loadProfile();
+    }, [loadProfile]);
 
-    // =====================================================
-    // UPDATE PROFILE
-    // =====================================================
+    const profileCompletion = useMemo(() => {
+        if (!user) return 0;
 
-    const handleSaveProfile = async (
-        e: React.FormEvent
-    ) => {
-        e.preventDefault();
+        return Math.round(
+            ([fullName, email, headline, industryDomain, user.candidateProfile?.cvFilePath]
+                .filter(Boolean).length /
+                5) *
+                100
+        );
+    }, [email, fullName, headline, industryDomain, user]);
+
+    const initials = (user?.fullName || "Candidate")
+        .split(" ")
+        .filter(Boolean)
+        .slice(0, 2)
+        .map((part) => part.charAt(0).toUpperCase())
+        .join("");
+
+    const joinedDate = user?.createdAt
+        ? new Intl.DateTimeFormat("en", {
+              month: "short",
+              year: "numeric",
+          }).format(new Date(user.createdAt))
+        : "—";
+
+    const handleSaveProfile = async (event: React.FormEvent) => {
+        event.preventDefault();
+
+        const nextFullName = fullName.trim();
+        const nextEmail = email.trim().toLowerCase();
+
+        if (!nextFullName || !nextEmail) {
+            setError("Name and email are required.");
+            return;
+        }
 
         try {
             setSaving(true);
             setError("");
             setSuccess("");
 
-            await api.put(
-                "/candidate/profile",
-                {
-                    headline: headline.trim(),
-                    industryDomain: industryDomain.trim()
-                }
+            await api.put("/candidate/profile", {
+                fullName: nextFullName,
+                email: nextEmail,
+                headline: headline.trim(),
+                industryDomain: industryDomain.trim(),
+            });
+
+            localStorage.setItem("fullName", nextFullName);
+            localStorage.setItem("email", nextEmail);
+            window.dispatchEvent(new Event("profile-updated"));
+            setUser((currentUser) => currentUser
+                ? { ...currentUser, fullName: nextFullName, email: nextEmail }
+                : currentUser
             );
-
-            setSuccess("Profile updated successfully!");
-
-        } catch (err: unknown) {
-
-            console.error(err);
-
-            if (axios.isAxiosError(err)) {
-                setError(
-                    err.response?.data?.message ||
-                    "Failed to update profile."
-                );
-            } else {
-                setError("Failed to update profile.");
-            }
-
+            setFullName(nextFullName);
+            setEmail(nextEmail);
+            setSuccess("Your profile details have been updated.");
+        } catch (requestError: unknown) {
+            console.error(requestError);
+            setError(
+                axios.isAxiosError(requestError)
+                    ? requestError.response?.data?.message || "Failed to update profile."
+                    : "Failed to update profile."
+            );
         } finally {
             setSaving(false);
         }
     };
 
+    const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0];
+        if (!file) return;
 
-
-    // =====================================================
-    // SELECT CV
-    // =====================================================
-
-    const handleFileChange = (
-        e: React.ChangeEvent<HTMLInputElement>
-    ) => {
-
-        const file = e.target.files?.[0];
-
-        if (!file) {
-            return;
-        }
-
-        // Check PDF
         if (
             file.type !== "application/pdf" &&
             !file.name.toLowerCase().endsWith(".pdf")
         ) {
-
-            setError(
-                "Only PDF files are allowed."
-            );
-
+            setError("Only PDF files are allowed.");
             setCvFile(null);
+            return;
+        }
 
+        if (file.size > 5 * 1024 * 1024) {
+            setError("Please choose a PDF smaller than 5 MB.");
+            setCvFile(null);
             return;
         }
 
@@ -185,548 +176,219 @@ const CandidateProfilePage: React.FC = () => {
         setCvFile(file);
     };
 
-
-    // =====================================================
-    // UPLOAD / CHANGE CV
-    // =====================================================
-
     const handleUploadCv = async () => {
-
         if (!cvFile) {
-
-            setError(
-                "Please select a PDF CV."
-            );
-
+            setError("Choose a PDF CV before uploading.");
             return;
         }
 
         try {
-
             setUploading(true);
             setError("");
             setSuccess("");
 
             const formData = new FormData();
+            formData.append("file", cvFile);
 
-            formData.append(
-                "file",
-                cvFile
-            );
+            await api.post("/cv/upload", formData, {
+                headers: { "Content-Type": "multipart/form-data" },
+            });
 
-            await api.post(
-                "/cv/upload",
-                formData,
-                {
-                    headers: {
-                        "Content-Type":
-                            "multipart/form-data"
-                    }
-                }
-            );
-
-            setSuccess(
-                user?.candidateProfile?.cvFilePath
-                    ? "CV changed successfully!"
-                    : "CV uploaded successfully!"
-            );
-
+            setSuccess(user?.candidateProfile?.cvFilePath ? "CV changed successfully." : "CV uploaded successfully.");
             setCvFile(null);
 
-            // Reset file input
-            const fileInput =
-                document.getElementById(
-                    "cvInput"
-                ) as HTMLInputElement | null;
+            const fileInput = document.getElementById("cvInput") as HTMLInputElement | null;
+            if (fileInput) fileInput.value = "";
 
-            if (fileInput) {
-                fileInput.value = "";
-            }
-
-            // Reload profile
             await loadProfile();
-
-        } catch (err: unknown) {
-
-            console.error(err);
-
-            if (axios.isAxiosError(err)) {
-
-                setError(
-                    err.response?.data?.message ||
-                    "Failed to upload CV."
-                );
-
-            } else {
-
-                setError(
-                    "Failed to upload CV."
-                );
-
-            }
-
+        } catch (requestError: unknown) {
+            console.error(requestError);
+            setError(
+                axios.isAxiosError(requestError)
+                    ? requestError.response?.data?.message || "Failed to upload CV."
+                    : "Failed to upload CV."
+            );
         } finally {
-
             setUploading(false);
-
         }
     };
 
-
-    // =====================================================
-    // VIEW MY CV
-    // =====================================================
-
     const handleViewCv = async () => {
+        const cvWindow = window.open("about:blank", "_blank");
 
         try {
-
             setViewingCv(true);
             setError("");
 
-            const response =
-                await api.get(
-                    "/cv/me",
-                    {
-                        responseType: "blob"
-                    }
-                );
-
-            // Create temporary URL for PDF
-            const fileURL =
-                window.URL.createObjectURL(
-                    new Blob(
-                        [response.data],
-                        {
-                            type: "application/pdf"
-                        }
-                    )
-                );
-
-            // Open PDF in new tab
-            window.open(
-                fileURL,
-                "_blank"
+            const response = await api.get("/cv/me", { responseType: "blob" });
+            const fileUrl = window.URL.createObjectURL(
+                new Blob([response.data], { type: "application/pdf" })
             );
 
-            // Release URL after a short delay
-            setTimeout(() => {
-
-                window.URL.revokeObjectURL(
-                    fileURL
-                );
-
-            }, 10000);
-
-        } catch (err: unknown) {
-
-            console.error(err);
-
-            if (axios.isAxiosError(err)) {
-
-                setError(
-                    err.response?.data?.message ||
-                    "Failed to open CV."
-                );
-
+            if (cvWindow) {
+                cvWindow.location.href = fileUrl;
             } else {
-
-                setError(
-                    "Failed to open CV."
-                );
-
+                window.open(fileUrl, "_blank", "noopener,noreferrer");
             }
 
+            window.setTimeout(() => window.URL.revokeObjectURL(fileUrl), 10000);
+        } catch (requestError: unknown) {
+            console.error(requestError);
+            cvWindow?.close();
+            setError(
+                axios.isAxiosError(requestError)
+                    ? requestError.response?.data?.message || "Failed to open CV."
+                    : "Failed to open CV."
+            );
         } finally {
-
             setViewingCv(false);
-
         }
     };
 
-
-    // =====================================================
-    // LOADING
-    // =====================================================
-
     if (loading) {
-
         return (
-            <div className="container py-5">
-
-                <div className="text-center">
-
-                    <div
-                        className="spinner-border text-primary"
-                        role="status"
-                    />
-
-                    <p className="text-muted mt-2">
-                        Loading profile...
-                    </p>
-
+            <main className="profile-page">
+                <div className="profile-loading">
+                    <span className="dashboard-spinner" aria-hidden="true" />
+                    <p>Loading your profile…</p>
                 </div>
-
-            </div>
+            </main>
         );
     }
 
-
-    // =====================================================
-    // PAGE
-    // =====================================================
-
     return (
+        <main className="profile-page">
+            <div className="container profile-container">
+                <header className="profile-page-heading">
+                    <div>
+                        <span className="profile-eyebrow">Candidate workspace</span>
+                        <h1>My profile</h1>
+                        <p>Keep your professional story complete and ready for the next opportunity.</p>
+                    </div>
+                    <Link to="/candidate/jobs" className="profile-back-link">
+                        Find jobs
+                        <ArrowRight size={15} aria-hidden="true" />
+                    </Link>
+                </header>
 
-        <div className="container py-5">
+                {error && <div className="profile-alert profile-alert-error" role="alert">{error}</div>}
+                {success && <div className="profile-alert profile-alert-success" role="status"><CheckCircle2 size={17} aria-hidden="true" />{success}</div>}
 
-            {/* PAGE HEADER */}
+                <section className="profile-hero">
+                    <div className="profile-avatar-large">{initials || "C"}</div>
+                    <div className="profile-hero-copy">
+                        <span className="profile-hero-kicker"><Sparkles size={14} aria-hidden="true" /> Profile overview</span>
+                        <h2>{user?.fullName || "Candidate"}</h2>
+                        <p>{headline || "Add a professional headline to tell recruiters what you do."}</p>
+                        <div className="profile-hero-meta">
+                            <span><Mail size={14} aria-hidden="true" />{user?.email || "Email not available"}</span>
+                            <span><BriefcaseBusiness size={14} aria-hidden="true" />Candidate</span>
+                            <span><CalendarDays size={14} aria-hidden="true" />Joined {joinedDate}</span>
+                        </div>
+                    </div>
+                    <div className="profile-completion">
+                        <div className="profile-completion-ring" style={{ "--profile-progress": `${profileCompletion * 3.6}deg` } as React.CSSProperties}>
+                            <strong>{profileCompletion}%</strong>
+                            <span>complete</span>
+                        </div>
+                        <div className="profile-completion-copy">
+                            <strong>Profile strength</strong>
+                            <p>{profileCompletion >= 80 ? "You are ready to be discovered." : "Complete a few more details to stand out."}</p>
+                        </div>
+                    </div>
+                </section>
 
-            <div className="mb-4">
+                <div className="profile-layout">
+                    <section className="profile-card">
+                        <div className="profile-card-header">
+                            <span className="profile-section-icon blue"><UserRound size={18} aria-hidden="true" /></span>
+                            <div><span>Professional identity</span><h2>Personal information</h2></div>
+                        </div>
 
-                <h2 className="fw-bold">
-                    My Profile
-                </h2>
-
-                <p className="text-muted">
-                    Manage your personal information and CV.
-                </p>
-
-            </div>
-
-
-            {/* ERROR */}
-
-            {error && (
-
-                <div className="alert alert-danger">
-
-                    {error}
-
-                </div>
-
-            )}
-
-
-            {/* SUCCESS */}
-
-            {success && (
-
-                <div className="alert alert-success">
-
-                    {success}
-
-                </div>
-
-            )}
-
-
-            <div className="row g-4">
-
-
-                {/* =================================================
-                    PERSONAL INFORMATION
-                ================================================= */}
-
-                <div className="col-lg-6">
-
-                    <div className="card border-0 shadow-sm h-100">
-
-                        <div className="card-body p-4">
-
-                            <h4 className="fw-bold mb-4">
-                                Personal Information
-                            </h4>
-
-
-                            {/* FULL NAME */}
-
-                            <div className="mb-3">
-
-                                <label className="form-label fw-semibold">
-                                    Full Name
-                                </label>
-
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={
-                                        user?.fullName || ""
-                                    }
-                                    disabled
-                                />
-
-                            </div>
-
-
-                            {/* EMAIL */}
-
-                            <div className="mb-3">
-
-                                <label className="form-label fw-semibold">
-                                    Email
-                                </label>
-
-                                <input
-                                    type="email"
-                                    className="form-control"
-                                    value={
-                                        user?.email || ""
-                                    }
-                                    disabled
-                                />
-
-                            </div>
-
-
-                            {/* ROLE */}
-
-                            <div className="mb-3">
-
-                                <label className="form-label fw-semibold">
-                                    Role
-                                </label>
-
-                                <input
-                                    type="text"
-                                    className="form-control"
-                                    value={
-                                        user?.role || ""
-                                    }
-                                    disabled
-                                />
-
-                            </div>
-
-
-                            <form
-                                onSubmit={
-                                    handleSaveProfile
-                                }
-                            >
-
-                                {/* HEADLINE */}
-
-                                <div className="mb-3">
-
-                                    <label className="form-label fw-semibold">
-                                        Headline
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="e.g. Java Backend Developer"
-                                        value={headline}
-                                        onChange={(e) =>
-                                            setHeadline(
-                                                e.target.value
-                                            )
-                                        }
-                                    />
-
+                        <form className="profile-form" onSubmit={handleSaveProfile}>
+                            <div className="profile-form-grid">
+                                <div className="profile-field">
+                                    <label htmlFor="profile-fullName">Full name</label>
+                                    <input id="profile-fullName" type="text" value={fullName} onChange={(event) => setFullName(event.target.value)} autoComplete="name" maxLength={120} required />
+                                    <small>Shown to recruiters on your applications.</small>
                                 </div>
-
-
-                                {/* INDUSTRY */}
-
-                                <div className="mb-3">
-
-                                    <label className="form-label fw-semibold">
-                                        Industry Domain
-                                    </label>
-
-                                    <input
-                                        type="text"
-                                        className="form-control"
-                                        placeholder="e.g. Software Development"
-                                        value={
-                                            industryDomain
-                                        }
-                                        onChange={(e) =>
-                                            setIndustryDomain(
-                                                e.target.value
-                                            )
-                                        }
-                                    />
-
+                                <div className="profile-field">
+                                    <label htmlFor="profile-email">Email address</label>
+                                    <input id="profile-email" type="email" value={email} onChange={(event) => setEmail(event.target.value)} autoComplete="email" maxLength={160} required />
+                                    <small>Used for sign-in and account messages.</small>
                                 </div>
+                                <div className="profile-field profile-field-full">
+                                    <label htmlFor="profile-headline">Professional headline</label>
+                                    <input id="profile-headline" type="text" value={headline} onChange={(event) => setHeadline(event.target.value)} placeholder="e.g. Java backend developer" maxLength={120} />
+                                    <small>A clear headline helps recruiters understand your direction.</small>
+                                </div>
+                                <div className="profile-field profile-field-full">
+                                    <label htmlFor="profile-industry">Industry domain</label>
+                                    <input id="profile-industry" type="text" value={industryDomain} onChange={(event) => setIndustryDomain(event.target.value)} placeholder="e.g. Software development" maxLength={100} />
+                                </div>
+                            </div>
 
-
-                                {/* SAVE */}
-
-                                <button
-                                    type="submit"
-                                    className="btn btn-primary"
-                                    disabled={saving}
-                                >
-
-                                    {saving
-                                        ? "Saving..."
-                                        : "Save Profile"
-                                    }
-
+                            <div className="profile-form-footer">
+                                <span><Check size={14} aria-hidden="true" /> Changes are saved to your candidate profile.</span>
+                                <button type="submit" className="profile-primary-button" disabled={saving}>
+                                    <Save size={16} aria-hidden="true" />
+                                    {saving ? "Saving…" : "Save changes"}
                                 </button>
+                            </div>
+                        </form>
+                    </section>
 
-                            </form>
-
+                    <section className="profile-card profile-cv-card">
+                        <div className="profile-card-header">
+                            <span className="profile-section-icon violet"><FileText size={18} aria-hidden="true" /></span>
+                            <div><span>Recruiter-ready document</span><h2>My CV</h2></div>
                         </div>
 
-                    </div>
+                        {user?.candidateProfile?.cvFilePath ? (
+                            <div className="profile-cv-status uploaded">
+                                <span><CheckCircle2 size={19} aria-hidden="true" /></span>
+                                <div><strong>CV uploaded</strong><p>Your CV is available for matching and recruiter review.</p></div>
+                            </div>
+                        ) : (
+                            <div className="profile-cv-status missing">
+                                <span><FileText size={19} aria-hidden="true" /></span>
+                                <div><strong>No CV uploaded yet</strong><p>Upload a PDF so SmartHire can identify relevant skills.</p></div>
+                            </div>
+                        )}
 
-                </div>
-
-
-                {/* =================================================
-                    CV
-                ================================================= */}
-
-                <div className="col-lg-6">
-
-                    <div className="card border-0 shadow-sm h-100">
-
-                        <div className="card-body p-4">
-
-                            <h4 className="fw-bold mb-4">
-                                My CV
-                            </h4>
-
-
-                            {/* =================================================
-                                CV EXISTS
-                            ================================================= */}
-
-                            {user?.candidateProfile?.cvFilePath ? (
-
-                                <div>
-
-                                    <div className="alert alert-success">
-
-                                        <strong>
-                                            CV uploaded
-                                        </strong>
-
-                                        <p className="mb-0 mt-1">
-                                            Your CV is available
-                                            and can be viewed below.
-                                        </p>
-
-                                    </div>
-
-
-                                    {/* VIEW CV */}
-
-                                    <button
-                                        type="button"
-                                        className="btn btn-outline-primary me-2"
-                                        onClick={
-                                            handleViewCv
-                                        }
-                                        disabled={
-                                            viewingCv
-                                        }
-                                    >
-
-                                        {viewingCv
-                                            ? "Opening..."
-                                            : "View My CV"
-                                        }
-
-                                    </button>
-
-                                </div>
-
-                            ) : (
-
-                                <div className="alert alert-warning">
-
-                                    You have not uploaded
-                                    a CV yet.
-
-                                </div>
-
-                            )}
-
-
-                            <hr />
-
-
-                            {/* =================================================
-                                UPLOAD / CHANGE CV
-                            ================================================= */}
-
-                            <h6 className="fw-bold mb-3">
-
-                                {user?.candidateProfile?.cvFilePath
-                                    ? "Change CV"
-                                    : "Upload CV"
-                                }
-
-                            </h6>
-
-
-                            <input
-                                id="cvInput"
-                                type="file"
-                                className="form-control mb-3"
-                                accept=".pdf,application/pdf"
-                                onChange={
-                                    handleFileChange
-                                }
-                            />
-
-
-                            {/* SELECTED FILE */}
-
-                            {cvFile && (
-
-                                <div className="alert alert-info">
-
-                                    Selected file:
-
-                                    <strong className="ms-1">
-                                        {cvFile.name}
-                                    </strong>
-
-                                </div>
-
-                            )}
-
-
-                            {/* UPLOAD */}
-
-                            <button
-                                type="button"
-                                className="btn btn-success"
-                                onClick={
-                                    handleUploadCv
-                                }
-                                disabled={
-                                    uploading ||
-                                    !cvFile
-                                }
-                            >
-
-                                {uploading
-                                    ? "Uploading..."
-                                    : user?.candidateProfile?.cvFilePath
-                                        ? "Change CV"
-                                        : "Upload CV"
-                                }
-
+                        {user?.candidateProfile?.cvFilePath && (
+                            <button type="button" className="profile-secondary-button profile-view-cv" onClick={handleViewCv} disabled={viewingCv}>
+                                <Eye size={16} aria-hidden="true" />
+                                {viewingCv ? "Opening…" : "View current CV"}
                             </button>
+                        )}
 
-                        </div>
+                        <div className="profile-upload-divider"><span>or update your document</span></div>
 
-                    </div>
+                        <label className="profile-upload-zone" htmlFor="cvInput">
+                            <span className="profile-upload-icon"><UploadCloud size={21} aria-hidden="true" /></span>
+                            <span className="profile-upload-copy">
+                                <strong>{cvFile ? cvFile.name : "Choose a PDF CV"}</strong>
+                                <small>{cvFile ? "Ready to upload" : "Maximum 5 MB · PDF only"}</small>
+                            </span>
+                            <span className="profile-file-chooser">
+                                <UploadCloud size={15} aria-hidden="true" />
+                                {cvFile ? "Change file" : "Choose file"}
+                            </span>
+                            <input className="profile-file-input" id="cvInput" type="file" accept=".pdf,application/pdf" onChange={handleFileChange} />
+                        </label>
 
+                        <button type="button" className="profile-primary-button profile-upload-button" onClick={handleUploadCv} disabled={uploading || !cvFile}>
+                            <UploadCloud size={16} aria-hidden="true" />
+                            {uploading ? "Uploading…" : user?.candidateProfile?.cvFilePath ? "Change CV" : "Upload CV"}
+                        </button>
+
+                        <p className="profile-cv-note">Your CV is used to surface relevant skill evidence. Review the result before applying.</p>
+                    </section>
                 </div>
-
             </div>
-
-        </div>
+        </main>
     );
 };
 
 export default CandidateProfilePage;
-

@@ -1,130 +1,171 @@
 import React from "react";
-import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
+import {
+    BrowserRouter,
+    Navigate,
+    Route,
+    Routes,
+    useLocation,
+} from "react-router-dom";
 
+import Navbar from "./components/Navbar";
+import ProtectedRoute from "./components/ProtectedRoute";
+import AdminDashboard from "./pages/admin/AdminDashboard";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
-
 import CandidateDashboard from "./pages/candidate/CandidateDashboard";
-import Jobs from "./pages/candidate/Jobs";
-import MyApplications from "./pages/candidate/MyApplications";
-
-import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard";
-import Navbar from "./components/Navbar";
-
-import { getToken } from "./services/authService";
-import JobDetails from "./pages/candidate/JobDetails";
 import CandidateProfile from "./pages/candidate/CandidateProfile";
+import Jobs from "./pages/job/Jobs";
+import MyApplications from "./pages/candidate/MyApplications";
+import CreateJob from "./pages/recruiter/CreateJob";
+import JobApplications from "./pages/recruiter/JobApplications";
+import RecruiterDashboard from "./pages/recruiter/RecruiterDashboard";
+import RecruiterJobDetails from "./pages/recruiter/RecruiterJobDetails";
+import RecruiterJobs from "./pages/recruiter/RecruiterJobs";
+import RecruiterProfile from "./pages/recruiter/RecruiterProfile";
+import { getRole, getRoleHomePath, getToken } from "./services/authService";
 
-const App: React.FC = () => {
+const AppRoutes: React.FC = () => {
+    // Reading location makes this component refresh after login navigation,
+    // so the navbar and protected routes see the newly stored auth data.
+    useLocation();
 
     const token = getToken();
+    const role = getRole();
 
     return (
-        <BrowserRouter>
-
-            {token && <Navbar />}
+        <>
+            <Navbar />
 
             <Routes>
-
-                {/* AUTH */}
-
-                <Route
-                    path="/login"
-                    element={<Login />}
-                />
-
-                <Route
-                    path="/register"
-                    element={<Register />}
-                />
-
-
-                {/* CANDIDATE */}
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
 
                 <Route
                     path="/candidate/dashboard"
                     element={
-                        token
-                            ? <CandidateDashboard />
-                            : <Navigate to="/login" />
+                        <ProtectedRoute allowedRoles={["CANDIDATE"]}>
+                            <CandidateDashboard />
+                        </ProtectedRoute>
                     }
                 />
-
                 <Route
                     path="/candidate/jobs"
                     element={
-                        token
-                            ? <Jobs />
-                            : <Navigate to="/login" />
+                        <ProtectedRoute allowedRoles={["CANDIDATE"]}>
+                            <Jobs />
+                        </ProtectedRoute>
                     }
                 />
-
-                {/*<Route*/}
-                {/*    path="/candidate/jobs/:id"*/}
-                {/*    element={*/}
-                {/*        token*/}
-                {/*            ? <JobDetails />*/}
-                {/*            : <Navigate to="/login" />*/}
-                {/*    }*/}
-                {/*/>*/}
-
                 <Route
                     path="/candidate/applications"
                     element={
-                        token
-                            ? <MyApplications />
-                            : <Navigate to="/login" />
-                    }
-                />
-
-
-                {/* RECRUITER */}
-
-                <Route
-                    path="/recruiter/dashboard"
-                    element={
-                        token
-                            ? <RecruiterDashboard />
-                            : <Navigate to="/login" />
+                        <ProtectedRoute allowedRoles={["CANDIDATE"]}>
+                            <MyApplications />
+                        </ProtectedRoute>
                     }
                 />
                 <Route
                     path="/profile"
-                    element={<CandidateProfile />}
+                    element={
+                        <ProtectedRoute allowedRoles={["CANDIDATE"]}>
+                            <CandidateProfile />
+                        </ProtectedRoute>
+                    }
                 />
 
-                {/* DEFAULT */}
+                <Route
+                    path="/recruiter/dashboard"
+                    element={
+                        <ProtectedRoute allowedRoles={["RECRUITER"]}>
+                            <RecruiterDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/recruiter/jobs/create"
+                    element={
+                        <ProtectedRoute allowedRoles={["RECRUITER"]}>
+                            <CreateJob />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/recruiter/jobs"
+                    element={
+                        <ProtectedRoute allowedRoles={["RECRUITER"]}>
+                            <RecruiterJobs />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/recruiter/jobs/:jobId/edit"
+                    element={
+                        <ProtectedRoute allowedRoles={["RECRUITER"]}>
+                            <CreateJob />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/recruiter/jobs/:jobId"
+                    element={
+                        <ProtectedRoute allowedRoles={["RECRUITER"]}>
+                            <RecruiterJobDetails />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/recruiter/jobs/:jobId/applications"
+                    element={
+                        <ProtectedRoute allowedRoles={["RECRUITER"]}>
+                            <JobApplications />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/recruiter/profile"
+                    element={
+                        <ProtectedRoute allowedRoles={["RECRUITER"]}>
+                            <RecruiterProfile />
+                        </ProtectedRoute>
+                    }
+                />
+
+                <Route
+                    path="/admin/dashboard"
+                    element={
+                        <ProtectedRoute allowedRoles={["ADMIN"]}>
+                            <AdminDashboard />
+                        </ProtectedRoute>
+                    }
+                />
 
                 <Route
                     path="/"
                     element={
                         <Navigate
-                            to={
-                                token
-                                    ? "/candidate/jobs"
-                                    : "/login"
-                            }
+                            to={token ? getRoleHomePath(role) : "/login"}
+                            replace
                         />
                     }
                 />
-
                 <Route
                     path="*"
                     element={
                         <Navigate
-                            to={
-                                token
-                                    ? "/candidate/jobs"
-                                    : "/login"
-                            }
+                            to={token ? getRoleHomePath(role) : "/login"}
+                            replace
                         />
                     }
                 />
-
             </Routes>
-
-        </BrowserRouter>
+        </>
     );
 };
+
+const App: React.FC = () => (
+    <BrowserRouter>
+        <AppRoutes />
+    </BrowserRouter>
+);
 
 export default App;

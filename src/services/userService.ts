@@ -1,5 +1,9 @@
 import api from "./api";
-import type { UserDetails } from "../types/user";
+import type {
+    RecruiterProfile,
+    RecruiterProfileUpdateRequest,
+    UserDetails,
+} from "../types/user";
 
 // =====================================================
 // GET LOGGED-IN USER PROFILE
@@ -14,6 +18,17 @@ export const getMyProfile = async (): Promise<UserDetails> => {
 
     const response = await api.get<UserDetails>(
         `/users/${userId}`
+    );
+
+    return response.data;
+};
+
+export const updateRecruiterProfile = async (
+    data: RecruiterProfileUpdateRequest
+): Promise<RecruiterProfile> => {
+    const response = await api.put<RecruiterProfile>(
+        "/recruiter/profile",
+        data
     );
 
     return response.data;

@@ -1,5 +1,7 @@
 export type ApplicationStatus =
     | "PENDING"
+    | "REVIEWING"
+    | "SHORTLISTED"
     | "ACCEPTED"
     | "REJECTED";
 
@@ -8,6 +10,7 @@ export interface Application {
 
     jobId: number;
     jobTitle: string;
+    companyName?: string | null;
 
     candidateProfileId: number;
 
@@ -28,7 +31,13 @@ export interface Application {
     matchPercentage?: number | null;
 
     matchedSkills?: string[] | null;
+    relatedSkills?: string[] | null;
     missingSkills?: string[] | null;
+    skillScores?: Record<string, number> | null;
+    skillWeights?: Record<string, number> | null;
+    skillImportance?: Record<string, string> | null;
+    skillEvidence?: Record<string, string> | null;
+    skillMatchTypes?: Record<string, string> | null;
 }
 
 export interface ApplyToJobRequest {
