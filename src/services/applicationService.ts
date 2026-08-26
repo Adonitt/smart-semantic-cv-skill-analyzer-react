@@ -2,6 +2,7 @@ import api from "./api";
 
 import type {
     Application,
+    ApplicationPage,
     ApplyToJobRequest,
     ApplicationStatus,
 } from "../types/application";
@@ -55,6 +56,12 @@ export const updateApplicationCoverLetter = async (
     return response.data;
 };
 
+export const deleteApplication = async (
+    applicationId: number
+): Promise<void> => {
+    await api.delete(`/jobs/candidate/applications/${applicationId}`);
+};
+
 
 // =====================================================
 // RECRUITER - APPLICATIONS FOR JOB
@@ -100,9 +107,33 @@ export const updateApplicationStatus = async (
 export const getApplicationsWithCandidate = async (
     jobId: number
 ): Promise<Application[]> => {
+    const response = await getApplicationsWithCandidatePage(jobId, {
+        page: 0,
+        size: 100,
+    });
 
-    const response = await api.get<Application[]>(
-        `/jobs/recruiter/jobs/${jobId}/applications/details`
+    return response.content;
+};
+
+export const getApplicationsWithCandidatePage = async (
+    jobId: number,
+    params: {
+        page: number;
+        size: number;
+        search?: string;
+        status?: ApplicationStatus;
+    }
+): Promise<ApplicationPage> => {
+    const response = await api.get<ApplicationPage>(
+        `/jobs/recruiter/jobs/${jobId}/applications/details`,
+        {
+            params: {
+                page: params.page,
+                size: params.size,
+                ...(params.search ? { search: params.search } : {}),
+                ...(params.status ? { status: params.status } : {}),
+            },
+        }
     );
 
     return response.data;

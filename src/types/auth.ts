@@ -25,6 +25,7 @@ export interface RegisterResponse {
     email: string;
     fullName: string;
     role: RoleEnum;
+    emailVerified: boolean;
 }
 
 export interface LoginRequest {
@@ -39,4 +40,20 @@ export interface LoginResponse {
     role: RoleEnum;
     token: string;
     message: string;
+}
+
+export interface ChangePasswordRequest {
+    currentPassword: string;
+    newPassword: string;
+    confirmPassword: string;
+}
+
+export interface ForgotPasswordRequest {
+    email: string;
+}
+
+export interface ResetPasswordRequest {
+    token: string;
+    newPassword: string;
+    confirmPassword: string;
 }

@@ -1,24 +1,29 @@
-import React, { useEffect, useState } from "react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
+import React, {useEffect, useState} from "react";
+import {Link, useLocation, useNavigate} from "react-router-dom";
 import {
     BriefcaseBusiness,
     FileText,
     LayoutDashboard,
+    LockKeyhole,
     LogOut,
     Menu,
     ShieldCheck,
     Sparkles,
     UserRound,
+    UsersRound,
     X,
 } from "lucide-react";
 
-import { getRole, getRoleHomePath, getToken, logout } from "../services/authService";
+import {AUTH_CHANGED_EVENT, getRole, getRoleHomePath, getToken, logout,} from "../services/authService";
+import LanguageSelector from "./LanguageSelector";
+import { useLanguage } from "../i18n/LanguageContext";
 
 const Navbar: React.FC = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const [menuOpen, setMenuOpen] = useState(false);
     const [fullName, setFullName] = useState(() => localStorage.getItem("fullName") || "User");
+    const { t } = useLanguage();
     const token = getToken();
     const role = getRole();
     const homePath = getRoleHomePath(role);
@@ -34,9 +39,21 @@ const Navbar: React.FC = () => {
             setFullName(localStorage.getItem("fullName") || "User");
         };
 
+        syncProfileName();
         window.addEventListener("profile-updated", syncProfileName);
-        return () => window.removeEventListener("profile-updated", syncProfileName);
+        window.addEventListener(AUTH_CHANGED_EVENT, syncProfileName);
+        window.addEventListener("storage", syncProfileName);
+
+        return () => {
+            window.removeEventListener("profile-updated", syncProfileName);
+            window.removeEventListener(AUTH_CHANGED_EVENT, syncProfileName);
+            window.removeEventListener("storage", syncProfileName);
+        };
     }, []);
+
+    useEffect(() => {
+        setFullName(localStorage.getItem("fullName") || "User");
+    }, [location.pathname, location.key]);
 
     if (!token) {
         return null;
@@ -44,6 +61,7 @@ const Navbar: React.FC = () => {
 
     const handleLogout = () => {
         logout();
+        setFullName("User");
         setMenuOpen(false);
         navigate("/login");
     };
@@ -68,7 +86,7 @@ const Navbar: React.FC = () => {
                     type="button"
                     aria-controls="navbarContent"
                     aria-expanded={menuOpen}
-                    aria-label={menuOpen ? "Close navigation" : "Open navigation"}
+                    aria-label={menuOpen ? t("nav.close") : t("nav.open")}
                     onClick={() => setMenuOpen((open) => !open)}
                 >
                     {menuOpen ? <X size={19} aria-hidden="true" /> : <Menu size={19} aria-hidden="true" />}
@@ -81,25 +99,31 @@ const Navbar: React.FC = () => {
                                 <li className="nav-item">
                                     <Link className={navClass("/candidate/dashboard")} to="/candidate/dashboard" onClick={closeMenu}>
                                         <LayoutDashboard size={15} aria-hidden="true" />
-                                        Overview
+                                        {t("nav.overview")}
                                     </Link>
                                 </li>
                                 <li className="nav-item">
                                     <Link className={navClass("/candidate/jobs")} to="/candidate/jobs" onClick={closeMenu}>
                                         <BriefcaseBusiness size={15} aria-hidden="true" />
-                                        Find jobs
+                                        {t("nav.findJobs")}
                                     </Link>
                                 </li>
                                 <li className="nav-item">
                                     <Link className={navClass("/candidate/applications")} to="/candidate/applications" onClick={closeMenu}>
                                         <FileText size={15} aria-hidden="true" />
-                                        Applications
+                                        {t("nav.applications")}
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className={navClass("/change-password")} to="/change-password" onClick={closeMenu}>
+                                        <LockKeyhole size={15} aria-hidden="true" />
+                                        {t("nav.security")}
                                     </Link>
                                 </li>
                                 <li className="nav-item">
                                     <Link className={navClass("/profile")} to="/profile" onClick={closeMenu}>
-                                        <UserRound size={15} aria-hidden="true" />
-                                        Profile
+                                        <UserRound size={15} aria-hidden="true"/>
+                                        {t("nav.profile")}
                                     </Link>
                                 </li>
                             </>
@@ -110,43 +134,77 @@ const Navbar: React.FC = () => {
                                 <li className="nav-item">
                                     <Link className={navClass("/recruiter/dashboard")} to="/recruiter/dashboard" onClick={closeMenu}>
                                         <LayoutDashboard size={15} aria-hidden="true" />
-                                        Overview
+                                        {t("nav.overview")}
                                     </Link>
                                 </li>
                                 <li className="nav-item">
                                     <Link className={navClass("/recruiter/jobs")} to="/recruiter/jobs" onClick={closeMenu}>
                                         <BriefcaseBusiness size={15} aria-hidden="true" />
-                                        My jobs
+                                        {t("nav.myJobs")}
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className={navClass("/change-password")} to="/change-password" onClick={closeMenu}>
+                                        <LockKeyhole size={15} aria-hidden="true" />
+                                        {t("nav.security")}
                                     </Link>
                                 </li>
                                 <li className="nav-item">
                                     <Link className={navClass("/recruiter/profile")} to="/recruiter/profile" onClick={closeMenu}>
                                         <UserRound size={15} aria-hidden="true" />
-                                        Profile
+                                        {t("nav.profile")}
                                     </Link>
                                 </li>
                             </>
                         )}
 
                         {role === "ADMIN" && (
-                            <li className="nav-item">
-                                <Link className={navClass("/admin/dashboard")} to="/admin/dashboard" onClick={closeMenu}>
-                                    <ShieldCheck size={15} aria-hidden="true" />
-                                    Overview
-                                </Link>
-                            </li>
+                            <>
+                                <li className="nav-item">
+                                    <Link className={navClass("/admin/dashboard")} to="/admin/dashboard" onClick={closeMenu}>
+                                        <ShieldCheck size={15} aria-hidden="true" />
+                                        {t("nav.overview")}
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className={navClass("/admin/users")} to="/admin/users" onClick={closeMenu}>
+                                        <UsersRound size={15} aria-hidden="true" />
+                                        {t("nav.users")}
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className={navClass("/admin/jobs")} to="/admin/jobs" onClick={closeMenu}>
+                                        <BriefcaseBusiness size={15} aria-hidden="true" />
+                                        {t("nav.jobs")}
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className={navClass("/change-password")} to="/change-password" onClick={closeMenu}>
+                                        <LockKeyhole size={15} aria-hidden="true" />
+                                        {t("nav.security")}
+                                    </Link>
+                                </li>
+                                <li className="nav-item">
+                                    <Link className={navClass("/admin/profile")} to="/admin/profile"
+                                          onClick={closeMenu}>
+                                        <UserRound size={15} aria-hidden="true"/>
+                                        {t("nav.profile")}
+                                    </Link>
+                                </li>
+                            </>
                         )}
                     </ul>
 
                     <div className="app-navbar-user">
+                        <LanguageSelector />
                         <span className="app-avatar" aria-hidden="true">{initials}</span>
                         <div className="app-user-copy">
                             <strong>{fullName}</strong>
-                            <span>{role ? role.toLowerCase() : "user"}</span>
+                            <span>{role === "ADMIN" ? t("common.admin") : role === "CANDIDATE" ? t("common.candidate") : role === "RECRUITER" ? t("common.recruiter") : t("common.user")}</span>
                         </div>
                         <button type="button" className="app-logout" onClick={handleLogout}>
                             <LogOut size={16} aria-hidden="true" />
-                            <span>Log out</span>
+                            <span>{t("nav.logOut")}</span>
                         </button>
                     </div>
                 </div>

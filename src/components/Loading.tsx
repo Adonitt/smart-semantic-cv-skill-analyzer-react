@@ -1,12 +1,14 @@
 import React from "react";
+import { useLanguage } from "../i18n/LanguageContext";
 
 interface LoadingProps {
     text?: string;
 }
 
-const Loading: React.FC<LoadingProps> = ({
-                                             text = "Loading..."
-                                         }) => {
+const Loading: React.FC<LoadingProps> = ({ text }) => {
+    const { t } = useLanguage();
+    const loadingText = text || t("common.loading");
+
     return (
         <div className="d-flex justify-content-center align-items-center py-5">
             <div
@@ -14,12 +16,12 @@ const Loading: React.FC<LoadingProps> = ({
                 role="status"
             >
                 <span className="visually-hidden">
-                    Loading...
+                    {loadingText}
                 </span>
             </div>
 
             <span className="ms-3">
-                {text}
+                {loadingText}
             </span>
         </div>
     );

@@ -1,10 +1,16 @@
+import axios from "axios";
 import api from "./api";
 import type {
+    ChangePasswordRequest,
+    ForgotPasswordRequest,
     LoginRequest,
     LoginResponse,
     RegisterRequest,
     RegisterResponse,
+    ResetPasswordRequest,
 } from "../types/auth";
+
+export const AUTH_CHANGED_EVENT = "auth-changed";
 
 export const registerUser = async (
     data: RegisterRequest
@@ -26,6 +32,81 @@ export const loginUser = async (
     );
 
     return response.data;
+};
+
+export const changePassword = async (
+    data: ChangePasswordRequest
+): Promise<string> => {
+    const response = await api.put<string>(
+        "/auth/change-password",
+        data
+    );
+
+    return response.data;
+};
+
+export const forgotPassword = async (
+    data: ForgotPasswordRequest
+): Promise<string> => {
+    const response = await api.post<string>(
+        "/auth/forgot-password",
+        data
+    );
+
+    return response.data;
+};
+
+export const resetPassword = async (
+    data: ResetPasswordRequest
+): Promise<string> => {
+    const response = await api.post<string>(
+        "/auth/reset-password",
+        data
+    );
+
+    return response.data;
+};
+
+export const verifyEmail = async (token: string): Promise<string> => {
+    const response = await api.get<string>(
+        "/auth/verify-email",
+        { params: { token } }
+    );
+
+    return response.data;
+};
+
+export const resendVerification = async (email: string): Promise<string> => {
+    const response = await api.post<string>(
+        "/auth/resend-verification",
+        { email }
+    );
+
+    return response.data;
+};
+
+export const getAuthErrorMessage = (
+    error: unknown,
+    fallback: string
+): string => {
+    if (!axios.isAxiosError(error)) {
+        return fallback;
+    }
+
+    const responseData = error.response?.data as
+        | { message?: string }
+        | string
+        | undefined;
+
+    if (typeof responseData === "string" && responseData.trim()) {
+        return responseData;
+    }
+
+    if (responseData && typeof responseData === "object") {
+        return responseData.message || fallback;
+    }
+
+    return fallback;
 };
 
 // =====================================================
@@ -59,6 +140,8 @@ export const saveLoginData = (
         "role",
         data.role
     );
+
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
 };
 
 // =====================================================
@@ -94,4 +177,6 @@ export const logout = (): void => {
     localStorage.removeItem("email");
     localStorage.removeItem("fullName");
     localStorage.removeItem("role");
+
+    window.dispatchEvent(new Event(AUTH_CHANGED_EVENT));
 };

@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import JobCard from "../../components/JobCard";
+import { ArrowDownUp, SlidersHorizontal, X } from "lucide-react";
 import {
-    getPublishedJobs,
     filterJobs,
 } from "../../services/jobService";
 import type {
@@ -10,16 +10,19 @@ import type {
 } from "../../types/job";
 import JobDetails from "./JobDetails";
 import api from "../../services/api";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 const JOBS_PER_PAGE = 9;
 
 const Jobs: React.FC = () => {
+    const { t } = useLanguage();
 
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
+    const [filtersOpen, setFiltersOpen] = useState(false);
 
     const [currentPage, setCurrentPage] = useState(1);
 
@@ -43,6 +46,15 @@ const Jobs: React.FC = () => {
         firstJobIndex,
         firstJobIndex + JOBS_PER_PAGE
     );
+
+    const activeFilterCount = [
+        filters.keyword,
+        filters.location,
+        filters.employmentType,
+        filters.experienceLevel,
+        filters.minSalary !== undefined,
+        filters.maxSalary !== undefined,
+    ].filter(Boolean).length;
 
     // Keep the selected page valid when a filter reduces the result count.
     // The initial request should use the default filter snapshot only. Later
@@ -106,25 +118,16 @@ const Jobs: React.FC = () => {
     // LOAD JOBS
     // =====================================================
 
-    const loadJobs = async () => {
+    const loadJobs = async (requestedFilters: JobFilterRequest = filters) => {
 
         try {
 
             setLoading(true);
             setError("");
 
-            const hasFilters =
-                filters.keyword ||
-                filters.location ||
-                filters.employmentType ||
-                filters.experienceLevel ||
-                filters.minSalary !== undefined ||
-                filters.maxSalary !== undefined ||
-                filters.sortBy !== "MATCH";
-
-            const data = hasFilters
-                ? await filterJobs(filters)
-                : await getPublishedJobs();
+            // Always use the candidate endpoint so the default Best Match
+            // sort also receives AI match scores on the initial load.
+            const data = await filterJobs(requestedFilters);
 
             setJobs(data);
             setCurrentPage(1);
@@ -154,7 +157,7 @@ const Jobs: React.FC = () => {
         const loadData = async () => {
 
             await Promise.all([
-                loadJobs(),
+                loadJobs(filters),
                 loadApplications(),
             ]);
 
@@ -203,8 +206,19 @@ const Jobs: React.FC = () => {
         e.preventDefault();
 
         setCurrentPage(1);
-        loadJobs();
+        void loadJobs(filters);
 
+    };
+
+    const handleSortChange = (event: React.ChangeEvent<HTMLSelectElement>) => {
+        const nextFilters: JobFilterRequest = {
+            ...filters,
+            sortBy: event.target.value as JobFilterRequest["sortBy"],
+        };
+
+        setFilters(nextFilters);
+        setCurrentPage(1);
+        void loadJobs(nextFilters);
     };
 
 
@@ -227,29 +241,7 @@ const Jobs: React.FC = () => {
         setFilters(defaultFilters);
         setCurrentPage(1);
 
-        try {
-
-            setLoading(true);
-            setError("");
-
-            const data =
-                await getPublishedJobs();
-
-            setJobs(data);
-
-        } catch (err) {
-
-            console.error(err);
-
-            setError(
-                "Failed to load jobs."
-            );
-
-        } finally {
-
-            setLoading(false);
-
-        }
+        await loadJobs(defaultFilters);
 
     };
 
@@ -288,14 +280,14 @@ const Jobs: React.FC = () => {
             <div className="jobs-page-header">
 
                 <div>
-                    <span className="jobs-eyebrow">Candidate workspace</span>
-                    <h1>Find your next opportunity</h1>
+                    <span className="jobs-eyebrow">{t("candidate.workspace")}</span>
+                    <h1>{t("jobs.title")}</h1>
 
-                    <p>Explore roles that match your skills, preferences and experience.</p>
+                    <p>{t("jobs.description")}</p>
                 </div>
                 <div className="jobs-page-badge">
-                    <span>AI-assisted</span>
-                    <small>skill matching</small>
+                        <span>{t("jobs.aiAssisted")}</span>
+                        <small>{t("jobs.skillMatching")}</small>
                 </div>
 
             </div>
@@ -305,7 +297,46 @@ const Jobs: React.FC = () => {
 
             <section className="jobs-filter-card">
 
-                <div className="jobs-filter-inner">
+                <div className="jobs-filter-toolbar">
+                    <div className="jobs-filter-summary">
+                        <span className="jobs-filter-kicker">{t("jobs.searchControls")}</span>
+                        <strong>
+                            {activeFilterCount > 0
+                                ? t("jobs.filtersActive", { count: activeFilterCount, suffix: activeFilterCount === 1 ? "" : "s" })
+                                : t("jobs.browseAll")}
+                        </strong>
+                    </div>
+
+                    <div className="jobs-filter-toolbar-actions">
+                        <label className="jobs-sort-control">
+                            <ArrowDownUp size={15} aria-hidden="true" />
+                            <span>{t("jobs.sortBy")}</span>
+                            <select
+                                name="sortBy"
+                                aria-label={t("jobs.sortAria")}
+                                value={filters.sortBy || "MATCH"}
+                                onChange={handleSortChange}
+                            >
+                                <option value="MATCH">{t("jobs.bestMatch")}</option>
+                                <option value="SALARY">{t("jobs.highestSalary")}</option>
+                            </select>
+                        </label>
+
+                        <button
+                            type="button"
+                            className="jobs-filter-toggle"
+                            aria-controls="candidate-job-filters"
+                            aria-expanded={filtersOpen}
+                            onClick={() => setFiltersOpen((open) => !open)}
+                        >
+                            {filtersOpen ? <X size={16} aria-hidden="true" /> : <SlidersHorizontal size={16} aria-hidden="true" />}
+                            {filtersOpen ? t("jobs.closeFilters") : t("jobs.openFilters")}
+                            {activeFilterCount > 0 && <span>{activeFilterCount}</span>}
+                        </button>
+                    </div>
+                </div>
+
+                {filtersOpen && <div className="jobs-filter-inner" id="candidate-job-filters">
 
                     <form className="jobs-filter-form" onSubmit={handleSubmit}>
 
@@ -316,7 +347,7 @@ const Jobs: React.FC = () => {
                             <div className="col-md-4">
 
                                 <label className="form-label fw-semibold">
-                                    Keyword
+                                    {t("jobs.keyword")}
                                 </label>
 
                                 <input
@@ -338,7 +369,7 @@ const Jobs: React.FC = () => {
                             <div className="col-md-4">
 
                                 <label className="form-label fw-semibold">
-                                    Location
+                                    {t("jobs.location")}
                                 </label>
 
                                 <input
@@ -360,7 +391,7 @@ const Jobs: React.FC = () => {
                             <div className="col-md-4">
 
                                 <label className="form-label fw-semibold">
-                                    Employment Type
+                                    {t("jobs.employmentType")}
                                 </label>
 
                                 <select
@@ -373,23 +404,23 @@ const Jobs: React.FC = () => {
                                 >
 
                                     <option value="">
-                                        All
+                                        {t("jobs.all")}
                                     </option>
 
                                     <option value="FULL_TIME">
-                                        Full Time
+                                        {t("jobs.fullTime")}
                                     </option>
 
                                     <option value="PART_TIME">
-                                        Part Time
+                                        {t("jobs.partTime")}
                                     </option>
 
                                     <option value="CONTRACT">
-                                        Contract
+                                        {t("jobs.contract")}
                                     </option>
 
                                     <option value="INTERNSHIP">
-                                        Internship
+                                        {t("jobs.internship")}
                                     </option>
 
                                 </select>
@@ -402,7 +433,7 @@ const Jobs: React.FC = () => {
                             <div className="col-md-4">
 
                                 <label className="form-label fw-semibold">
-                                    Experience Level
+                                    {t("jobs.experienceLevel")}
                                 </label>
 
                                 <select
@@ -415,19 +446,19 @@ const Jobs: React.FC = () => {
                                 >
 
                                     <option value="">
-                                        All
+                                        {t("jobs.all")}
                                     </option>
 
                                     <option value="ENTRY_LEVEL">
-                                        Entry Level
+                                        {t("jobs.entryLevel")}
                                     </option>
 
                                     <option value="MID_LEVEL">
-                                        Mid Level
+                                        {t("jobs.midLevel")}
                                     </option>
 
                                     <option value="SENIOR_LEVEL">
-                                        Senior Level
+                                        {t("jobs.seniorLevel")}
                                     </option>
 
                                 </select>
@@ -440,7 +471,7 @@ const Jobs: React.FC = () => {
                             <div className="col-md-4">
 
                                 <label className="form-label fw-semibold">
-                                    Minimum Salary
+                                    {t("jobs.minimumSalary")}
                                 </label>
 
                                 <input
@@ -463,7 +494,7 @@ const Jobs: React.FC = () => {
                             <div className="col-md-4">
 
                                 <label className="form-label fw-semibold">
-                                    Maximum Salary
+                                    {t("jobs.maximumSalary")}
                                 </label>
 
                                 <input
@@ -481,36 +512,6 @@ const Jobs: React.FC = () => {
                             </div>
 
 
-                            {/* SORT */}
-
-                            <div className="col-md-4">
-
-                                <label className="form-label fw-semibold">
-                                    Sort By
-                                </label>
-
-                                <select
-                                    name="sortBy"
-                                    className="form-select"
-                                    value={
-                                        filters.sortBy || "MATCH"
-                                    }
-                                    onChange={handleChange}
-                                >
-
-                                    <option value="MATCH">
-                                        Best Match
-                                    </option>
-
-                                    <option value="SALARY">
-                                        Highest Salary
-                                    </option>
-
-                                </select>
-
-                            </div>
-
-
                             {/* BUTTONS */}
 
                             <div className="col-md-4 d-flex align-items-end gap-2">
@@ -519,7 +520,7 @@ const Jobs: React.FC = () => {
                                     type="submit"
                                     className="btn jobs-submit flex-grow-1"
                                 >
-                                    Search
+                                    {t("jobs.search")}
                                 </button>
 
                                 <button
@@ -527,7 +528,7 @@ const Jobs: React.FC = () => {
                                     className="btn jobs-reset"
                                     onClick={resetFilters}
                                 >
-                                    Reset
+                                    {t("jobs.reset")}
                                 </button>
 
                             </div>
@@ -536,7 +537,7 @@ const Jobs: React.FC = () => {
 
                     </form>
 
-                </div>
+                </div>}
 
             </section>
 
@@ -562,7 +563,7 @@ const Jobs: React.FC = () => {
                     />
 
                     <p className="text-muted mt-2">
-                        Loading jobs...
+                        {t("jobs.loading")}
                     </p>
 
                 </div>
@@ -577,11 +578,11 @@ const Jobs: React.FC = () => {
                 <div className="jobs-empty-state">
 
                     <h5>
-                        No jobs found
+                         {t("jobs.none")}
                     </h5>
 
                     <p className="text-muted">
-                        Try changing your filters.
+                         {t("jobs.tryFilters")}
                     </p>
 
                 </div>
@@ -598,15 +599,14 @@ const Jobs: React.FC = () => {
                     <div className="jobs-results-header">
 
                         <h2>
-                            Available Jobs
+                             {t("jobs.available")}
                         </h2>
 
                         <span className="jobs-results-count">
-                            Showing {firstJobIndex + 1}-
-                            {Math.min(
+                            {t("jobs.showing", { from: firstJobIndex + 1, to: Math.min(
                                 firstJobIndex + JOBS_PER_PAGE,
                                 jobs.length
-                            )} of {jobs.length} jobs
+                            ), count: jobs.length })}
                         </span>
 
                     </div>
@@ -640,7 +640,7 @@ const Jobs: React.FC = () => {
                     {totalPages > 1 && (
                         <nav
                             className="jobs-pagination"
-                            aria-label="Jobs pagination"
+                             aria-label={t("jobs.pagination")}
                         >
                             <ul className="pagination justify-content-center flex-wrap mb-0">
                                 <li
@@ -659,9 +659,9 @@ const Jobs: React.FC = () => {
                                             )
                                         }
                                         disabled={currentPage === 1}
-                                        aria-label="Previous page"
+                                         aria-label={t("jobs.previous")}
                                     >
-                                        Previous
+                                        {t("jobs.previous")}
                                     </button>
                                 </li>
 
@@ -715,9 +715,9 @@ const Jobs: React.FC = () => {
                                         disabled={
                                             currentPage === totalPages
                                         }
-                                        aria-label="Next page"
+                                         aria-label={t("jobs.next")}
                                     >
-                                        Next
+                                        {t("jobs.next")}
                                     </button>
                                 </li>
                             </ul>

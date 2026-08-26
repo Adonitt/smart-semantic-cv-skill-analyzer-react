@@ -99,6 +99,33 @@ export interface Job {
     skillMatchTypes?: Record<string, string>;
 }
 
+export interface AdminJob extends Job {
+    recruiterId?: number;
+    recruiterName?: string;
+    recruiterEmail?: string;
+    applicationCount: number;
+}
+
+export interface AdminJobPage {
+    content: AdminJob[];
+    number: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+}
+
+export interface JobPage {
+    content: Job[];
+    number: number;
+    size: number;
+    totalElements: number;
+    totalPages: number;
+    first: boolean;
+    last: boolean;
+}
+
 
 // =====================================================
 // JOB FILTER

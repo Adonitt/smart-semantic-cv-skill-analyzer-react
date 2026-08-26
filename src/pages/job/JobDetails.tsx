@@ -21,6 +21,7 @@ import {
 
 import type { Job, JobSkill } from "../../types/job";
 import api from "../../services/api";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 interface JobDetailsProps {
     job: Job;
@@ -28,17 +29,6 @@ interface JobDetailsProps {
     onApplicationSuccess: (jobId: number) => void;
     onClose: () => void;
 }
-
-const importanceLabel = (importance?: string) => {
-    switch (importance) {
-        case "MUST_HAVE":
-            return "Must-have";
-        case "NICE_TO_HAVE":
-            return "Nice-to-have";
-        default:
-            return "Important";
-    }
-};
 
 const importanceTone = (importance?: string) => {
     switch (importance) {
@@ -48,21 +38,6 @@ const importanceTone = (importance?: string) => {
             return "nice-to-have";
         default:
             return "important";
-    }
-};
-
-const matchTypeLabel = (matchType?: string) => {
-    switch (matchType) {
-        case "explicit":
-            return "Matched directly";
-        case "canonical":
-            return "Matched directly across languages";
-        case "semantic":
-            return "Matched semantically";
-        case "related":
-            return "Related evidence";
-        default:
-            return "Not found";
     }
 };
 
@@ -136,10 +111,22 @@ const JobDetails: React.FC<JobDetailsProps> = ({
     onApplicationSuccess,
     onClose,
 }) => {
+    const { t } = useLanguage();
     const [coverLetter, setCoverLetter] = useState("");
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
+    const localizedImportanceLabel = (importance?: string) => importance === "MUST_HAVE"
+        ? t("recruiter.mustHave")
+        : importance === "NICE_TO_HAVE"
+            ? t("recruiter.niceToHave")
+            : t("recruiter.important");
+    const localizedMatchTypeLabel = (matchType?: string) => {
+        if (matchType === "explicit" || matchType === "canonical") return t("job.matched");
+        if (matchType === "semantic") return t("status.matched");
+        if (matchType === "related") return t("job.related");
+        return t("job.missing");
+    };
 
     const requiredSkills = useMemo(() => getRequiredSkills(job), [job]);
     const requirementLines = useMemo(
@@ -196,7 +183,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({
         }
 
         if (!coverLetter.trim()) {
-            setError("Please write a cover letter before applying.");
+            setError(t("job.coverLetterRequired"));
             return;
         }
 
@@ -209,7 +196,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                 coverLetter: coverLetter.trim(),
             });
 
-            setSuccess("Application submitted successfully.");
+            setSuccess(t("job.submittedSuccess"));
             setCoverLetter("");
             onApplicationSuccess(job.id);
         } catch (requestError: unknown) {
@@ -218,10 +205,10 @@ const JobDetails: React.FC<JobDetailsProps> = ({
             if (axios.isAxiosError(requestError)) {
                 setError(
                     requestError.response?.data?.message ||
-                        "Failed to submit application."
+                        t("job.submitError")
                 );
             } else {
-                setError("Failed to submit application.");
+                setError(t("job.submitError"));
             }
         } finally {
             setLoading(false);
@@ -250,27 +237,27 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                         <div className="job-details-hero-content">
                             <div className="job-details-eyebrow">
                                 <Sparkles size={13} aria-hidden="true" />
-                                Open opportunity
+                                {t("job.openOpportunity")}
                             </div>
                             <h2 id="job-details-title">{job.title}</h2>
                             <div className="job-details-company">
                                 <span className="job-details-company-mark">
                                     <Building2 size={17} aria-hidden="true" />
                                 </span>
-                                <span>{job.companyName || "Company"}</span>
+                                 <span>{job.companyName || t("job.company")}</span>
                             </div>
                             <div className="job-details-hero-meta">
                                 <span>
                                     <MapPin size={15} aria-hidden="true" />
-                                    {job.location || "Location not specified"}
+                                     {job.location || t("job.locationUnavailable")}
                                 </span>
                                 <span>
                                     <BriefcaseBusiness size={15} aria-hidden="true" />
-                                    {job.employmentType || "Employment type not specified"}
+                                     {job.employmentType || t("jobs.employmentType")}
                                 </span>
                                 <span>
                                     <Clock3 size={15} aria-hidden="true" />
-                                    {job.experienceLevel || "All experience levels"}
+                                     {job.experienceLevel || t("job.allExperience")}
                                 </span>
                             </div>
                         </div>
@@ -278,7 +265,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                         <button
                             type="button"
                             className="job-details-close"
-                            aria-label="Close job details"
+                             aria-label={t("job.closeDetails")}
                             onClick={onClose}
                         >
                             <X size={20} aria-hidden="true" />
@@ -292,8 +279,8 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                     <CheckCircle2 size={19} aria-hidden="true" />
                                 </span>
                                 <div>
-                                    <strong>Application submitted</strong>
-                                    <p>You have already applied for this position.</p>
+                                     <strong>{t("job.applicationSubmitted")}</strong>
+                                     <p>{t("job.alreadyApplied")}</p>
                                 </div>
                                 <Check size={17} aria-hidden="true" />
                             </div>
@@ -307,12 +294,12 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                             <FileText size={18} aria-hidden="true" />
                                         </span>
                                         <div>
-                                            <span className="job-details-section-kicker">The role</span>
-                                            <h3>Description</h3>
+                                             <span className="job-details-section-kicker">{t("job.role")}</span>
+                                             <h3>{t("job.description")}</h3>
                                         </div>
                                     </div>
                                     <p className="job-details-copy">
-                                        {job.description || "No description provided."}
+                                         {job.description || t("job.noDescription")}
                                     </p>
                                 </section>
 
@@ -322,8 +309,8 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                             <CheckCircle2 size={18} aria-hidden="true" />
                                         </span>
                                         <div>
-                                            <span className="job-details-section-kicker">What you will need</span>
-                                            <h3>Requirements</h3>
+                                             <span className="job-details-section-kicker">{t("job.whatNeed")}</span>
+                                             <h3>{t("job.requirements")}</h3>
                                         </div>
                                     </div>
                                     {requirementLines.length > 1 ? (
@@ -337,7 +324,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                         </ul>
                                     ) : (
                                         <p className="job-details-copy">
-                                            {job.requirements || "No requirements provided."}
+                                             {job.requirements || t("recruiter.requirements")}
                                         </p>
                                     )}
                                 </section>
@@ -345,10 +332,10 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                 <section className="job-details-section">
                                     <div className="job-details-section-heading job-details-section-heading-spaced">
                                         <div>
-                                            <span className="job-details-section-kicker">Recruiter priorities</span>
-                                            <h3>Required skills</h3>
+                                             <span className="job-details-section-kicker">{t("job.recruiterPriorities")}</span>
+                                             <h3>{t("job.requiredSkills")}</h3>
                                         </div>
-                                        <span className="job-details-count">{requiredSkills.length} skills</span>
+                                         <span className="job-details-count">{t("job.skillCount", { count: requiredSkills.length })}</span>
                                     </div>
                                     <div className="job-details-skill-list">
                                         {requiredSkills.length ? (
@@ -359,11 +346,11 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                                 >
                                                     <span className="job-details-skill-dot" />
                                                     <strong>{skill.name}</strong>
-                                                    <span>{importanceLabel(skill.importance)}</span>
+                                                    <span>{localizedImportanceLabel(skill.importance)}</span>
                                                 </div>
                                             ))
                                         ) : (
-                                            <p className="job-details-muted">No structured skills were provided for this job.</p>
+                                             <p className="job-details-muted">{t("job.noStructuredSkills")}</p>
                                         )}
                                     </div>
                                 </section>
@@ -374,21 +361,21 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                             <div>
                                                 <div className="job-match-kicker">
                                                     <Sparkles size={15} aria-hidden="true" />
-                                                    AI compatibility
+                                                     {t("job.aiCompatibility")}
                                                 </div>
-                                                <h3>How your profile fits</h3>
-                                                <p>Based on your CV and the recruiter&apos;s skill priorities.</p>
+                                                 <h3>{t("job.profileFit")}</h3>
+                                                 <p>{t("job.profileFitDescription")}</p>
                                             </div>
                                             <div className="job-match-score">
                                                 <strong>{matchPercentage.toFixed(0)}%</strong>
-                                                <span>match</span>
+                                                 <span>{t("job.match")}</span>
                                             </div>
                                         </div>
 
                                         <div
                                             className="job-match-progress"
                                             role="progressbar"
-                                            aria-label="Profile match score"
+                                             aria-label={t("job.profileMatchScore")}
                                             aria-valuemin={0}
                                             aria-valuemax={100}
                                             aria-valuenow={matchPercentage}
@@ -399,36 +386,36 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                         {hasScoreBreakdown && (
                                             <div className="job-score-breakdown">
                                                 <div className="job-score-metric">
-                                                    <span>Weighted skill score</span>
+                                                     <span>{t("job.weightedSkillScore")}</span>
                                                     <strong>{Math.round(job.weightedSkillScore ?? 0)}%</strong>
                                                 </div>
                                                 <div className="job-score-metric">
-                                                    <span>Skill coverage</span>
+                                                     <span>{t("job.skillCoverage")}</span>
                                                     <strong>{Math.round(job.skillCoverage ?? 0)}%</strong>
                                                 </div>
                                                 <div className="job-score-metric">
-                                                    <span>Overall semantic similarity</span>
+                                                     <span>{t("job.semanticSimilarity")}</span>
                                                     <strong>{Math.round(job.overallSimilarity ?? 0)}%</strong>
                                                 </div>
                                                 <p className="job-score-note">
                                                     {job.scoringMethod === "exact_skill_match"
-                                                        ? "All required skills matched directly, so the final score is 100%."
-                                                        : `Final score: ${skillScoreWeight}% skill evidence + ${semanticScoreWeight}% semantic similarity.`}
+                                                         ? t("job.allSkillsMatched")
+                                                         : t("job.finalScore", { skill: skillScoreWeight, semantic: semanticScoreWeight })}
                                                 </p>
                                             </div>
                                         )}
 
                                         <div className="job-match-stats">
-                                            <div><strong>{job.matchedSkills?.length || 0}</strong><span>Matched</span></div>
-                                            <div><strong>{job.relatedSkills?.length || 0}</strong><span>Related</span></div>
-                                            <div><strong>{job.missingSkills?.length || 0}</strong><span>Missing</span></div>
+                                             <div><strong>{job.matchedSkills?.length || 0}</strong><span>{t("job.matched")}</span></div>
+                                             <div><strong>{job.relatedSkills?.length || 0}</strong><span>{t("job.related")}</span></div>
+                                             <div><strong>{job.missingSkills?.length || 0}</strong><span>{t("job.missing")}</span></div>
                                         </div>
 
                                         {job.candidateSkills && job.candidateSkills.length > 0 && (
                                             <div className="job-match-evidence-block">
                                                 <div className="job-match-subheading">
                                                     <span className="job-match-subheading-icon"><Sparkles size={14} aria-hidden="true" /></span>
-                                                    <div><strong>Your CV skills</strong><span>Skills extracted from your CV</span></div>
+                                                     <div><strong>{t("job.yourCvSkills")}</strong><span>{t("job.extractedSkills")}</span></div>
                                                 </div>
                                                 <div className="job-details-pill-list">
                                                     {job.candidateSkills.map((skill, index) => (
@@ -442,7 +429,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                             <div className="job-match-evidence-block">
                                                 <div className="job-match-subheading">
                                                     <span className="job-match-subheading-icon green"><Languages size={14} aria-hidden="true" /></span>
-                                                    <div><strong>Languages</strong><span>Languages identified in your CV</span></div>
+                                                     <div><strong>{t("job.languages")}</strong><span>{t("job.cvLanguages")}</span></div>
                                                 </div>
                                                 <div className="job-details-pill-list">
                                                     {job.candidateLanguages.map((language, index) => (
@@ -456,23 +443,23 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                             <div className="job-match-table-wrap">
                                                 <div className="job-match-subheading">
                                                     <span className="job-match-subheading-icon purple"><ArrowUpRight size={14} aria-hidden="true" /></span>
-                                                    <div><strong>Skill-by-skill breakdown</strong><span>See why each skill affected your score</span></div>
+                                                     <div><strong>{t("job.breakdown")}</strong><span>{t("job.breakdownHelp")}</span></div>
                                                 </div>
                                                 <div className="job-match-table-scroll">
                                                     <table className="job-match-table">
                                                         <thead>
-                                                            <tr><th>Skill</th><th>Priority</th><th>Status</th><th>CV evidence</th></tr>
+                                                            <tr><th>{t("job.skill")}</th><th>{t("job.priority")}</th><th>{t("recruiter.status")}</th><th>{t("job.evidence")}</th></tr>
                                                         </thead>
                                                         <tbody>
                                                             {matchingRows.map((row) => (
                                                                 <tr key={row.name}>
                                                                     <td><strong>{row.name}</strong></td>
-                                                                    <td><span className={`job-priority-badge ${importanceTone(row.importance)}`}>{importanceLabel(row.importance)}</span></td>
+                                                                     <td><span className={`job-priority-badge ${importanceTone(row.importance)}`}>{localizedImportanceLabel(row.importance)}</span></td>
                                                                     <td>
-                                                                        <span className={`job-match-status ${matchTypeTone(row.matchType)}`}><span />{matchTypeLabel(row.matchType)}</span>
+                                                                         <span className={`job-match-status ${matchTypeTone(row.matchType)}`}><span />{localizedMatchTypeLabel(row.matchType)}</span>
                                                                         {row.matchType !== "missing" && row.score !== undefined && <small className="job-match-status-score">{Math.round(row.score * 100)}%</small>}
                                                                     </td>
-                                                                    <td className="job-match-evidence-text">{row.evidence || "No evidence found in the CV."}</td>
+                                                                     <td className="job-match-evidence-text">{row.evidence || t("job.noEvidence")}</td>
                                                                 </tr>
                                                             ))}
                                                         </tbody>
@@ -488,21 +475,21 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                 <section className="job-details-card">
                                     <div className="job-details-card-heading">
                                         <span className="job-details-section-icon amber"><BriefcaseBusiness size={17} aria-hidden="true" /></span>
-                                        <div><span className="job-details-section-kicker">Quick overview</span><h3>Job at a glance</h3></div>
+                                         <div><span className="job-details-section-kicker">{t("job.quickOverview")}</span><h3>{t("job.atGlance")}</h3></div>
                                     </div>
 
                                     <div className="job-facts-list">
-                                        <div className="job-fact"><span className="job-fact-icon"><MapPin size={16} aria-hidden="true" /></span><div><span>Location</span><strong>{job.location || "Not specified"}</strong></div></div>
-                                        <div className="job-fact"><span className="job-fact-icon"><WalletCards size={16} aria-hidden="true" /></span><div><span>Salary range</span><strong>{formatMoney(job.salaryMin)} – {formatMoney(job.salaryMax)}</strong></div></div>
-                                        <div className="job-fact"><span className="job-fact-icon"><CalendarDays size={16} aria-hidden="true" /></span><div><span>Application deadline</span><strong>{formatDate(job.applicationDeadline)}</strong></div></div>
-                                        <div className="job-fact"><span className="job-fact-icon"><Clock3 size={16} aria-hidden="true" /></span><div><span>Experience</span><strong>{job.experienceLevel || "Not specified"}</strong></div></div>
+                                         <div className="job-fact"><span className="job-fact-icon"><MapPin size={16} aria-hidden="true" /></span><div><span>{t("jobs.location")}</span><strong>{job.location || t("common.notProvided")}</strong></div></div>
+                                         <div className="job-fact"><span className="job-fact-icon"><WalletCards size={16} aria-hidden="true" /></span><div><span>{t("job.salaryRange")}</span><strong>{formatMoney(job.salaryMin)} – {formatMoney(job.salaryMax)}</strong></div></div>
+                                         <div className="job-fact"><span className="job-fact-icon"><CalendarDays size={16} aria-hidden="true" /></span><div><span>{t("job.applicationDeadline")}</span><strong>{formatDate(job.applicationDeadline)}</strong></div></div>
+                                         <div className="job-fact"><span className="job-fact-icon"><Clock3 size={16} aria-hidden="true" /></span><div><span>{t("job.experience")}</span><strong>{job.experienceLevel || t("common.notProvided")}</strong></div></div>
                                     </div>
 
-                                    <div className="job-details-status-row"><span>Status</span><span className="job-details-status">{job.status || "OPEN"}</span></div>
+                                     <div className="job-details-status-row"><span>{t("recruiter.status")}</span><span className="job-details-status">{job.status || "OPEN"}</span></div>
 
                                     {job.companyWebsite && (
                                         <a className="job-details-company-link" href={job.companyWebsite} target="_blank" rel="noopener noreferrer">
-                                            Visit company website <ExternalLink size={15} aria-hidden="true" />
+                                             {t("job.visitWebsite")} <ExternalLink size={15} aria-hidden="true" />
                                         </a>
                                     )}
                                 </section>
@@ -510,34 +497,34 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                 <section className="job-apply-card">
                                     <div className="job-apply-card-top">
                                         <span className="job-apply-icon"><Send size={18} aria-hidden="true" /></span>
-                                        <div><span className="job-details-section-kicker">Ready to apply?</span><h3>Make your move</h3></div>
+                                         <div><span className="job-details-section-kicker">{t("job.readyApply")}</span><h3>{t("job.makeMove")}</h3></div>
                                     </div>
 
                                     {hasApplied ? (
                                         <div className="job-apply-complete">
                                             <CheckCircle2 size={21} aria-hidden="true" />
-                                            <div><strong>You&apos;re all set</strong><p>Your application is already with the recruiter.</p></div>
+                                             <div><strong>{t("job.allSet")}</strong><p>{t("job.withRecruiter")}</p></div>
                                         </div>
                                     ) : (
                                         <form onSubmit={handleApply}>
-                                            <label className="job-apply-label" htmlFor="cover-letter">Cover letter</label>
+                                             <label className="job-apply-label" htmlFor="cover-letter">{t("job.coverLetter")}</label>
                                             <textarea
                                                 id="cover-letter"
                                                 className="job-apply-textarea"
                                                 rows={7}
-                                                placeholder="Tell the recruiter why you are a great fit..."
+                                                 placeholder={t("job.coverLetterPlaceholder")}
                                                 value={coverLetter}
                                                 onChange={(event) => setCoverLetter(event.target.value)}
                                                 required
                                             />
-                                            <p className="job-apply-hint">A short, focused message is usually best.</p>
+                                             <p className="job-apply-hint">{t("job.coverLetterHint")}</p>
 
                                             {error && <div className="job-details-form-alert error" role="alert"><AlertCircle size={16} aria-hidden="true" />{error}</div>}
                                             {success && <div className="job-details-form-alert success" role="status"><CheckCircle2 size={16} aria-hidden="true" />{success}</div>}
 
                                             <button type="submit" className="job-apply-button" disabled={loading}>
                                                 <Send size={16} aria-hidden="true" />
-                                                {loading ? "Submitting..." : "Apply for this job"}
+                                                 {loading ? t("common.loading") : t("job.applyFor")}
                                             </button>
                                         </form>
                                     )}
@@ -547,8 +534,8 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                     </div>
 
                     <footer className="job-details-footer">
-                        <span><FileText size={14} aria-hidden="true" />Review the role carefully before applying.</span>
-                        <button type="button" className="job-details-footer-close" onClick={onClose}>Close details</button>
+                        <span><FileText size={14} aria-hidden="true" />{t("job.reviewCarefully")}</span>
+                        <button type="button" className="job-details-footer-close" onClick={onClose}>{t("job.closeDetails")}</button>
                     </footer>
                 </div>
             </div>

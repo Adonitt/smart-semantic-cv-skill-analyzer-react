@@ -10,8 +10,16 @@ import {
 import Navbar from "./components/Navbar";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
+import AdminProfile from "./pages/admin/AdminProfile";
+import AdminUsers from "./pages/admin/AdminUsers";
+import AdminJobs from "./pages/admin/AdminJobs";
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
+import ChangePassword from "./pages/auth/ChangePassword";
+import ForgotPassword from "./pages/auth/ForgotPassword";
+import ResetPassword from "./pages/auth/ResetPassword";
+import ResendVerification from "./pages/auth/ResendVerification";
+import VerifyEmail from "./pages/auth/VerifyEmail";
 import CandidateDashboard from "./pages/candidate/CandidateDashboard";
 import CandidateProfile from "./pages/candidate/CandidateProfile";
 import Jobs from "./pages/job/Jobs";
@@ -39,6 +47,19 @@ const AppRoutes: React.FC = () => {
             <Routes>
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
+                <Route path="/verify-email" element={<VerifyEmail />} />
+                <Route path="/resend-verification" element={<ResendVerification />} />
+
+                <Route
+                    path="/change-password"
+                    element={
+                        <ProtectedRoute allowedRoles={["CANDIDATE", "RECRUITER", "ADMIN"]}>
+                            <ChangePassword />
+                        </ProtectedRoute>
+                    }
+                />
 
                 <Route
                     path="/candidate/dashboard"
@@ -135,6 +156,30 @@ const AppRoutes: React.FC = () => {
                     element={
                         <ProtectedRoute allowedRoles={["ADMIN"]}>
                             <AdminDashboard />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin/profile"
+                    element={
+                        <ProtectedRoute allowedRoles={["ADMIN"]}>
+                            <AdminProfile />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin/users"
+                    element={
+                        <ProtectedRoute allowedRoles={["ADMIN"]}>
+                            <AdminUsers />
+                        </ProtectedRoute>
+                    }
+                />
+                <Route
+                    path="/admin/jobs"
+                    element={
+                        <ProtectedRoute allowedRoles={["ADMIN"]}>
+                            <AdminJobs />
                         </ProtectedRoute>
                     }
                 />

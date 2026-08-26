@@ -10,6 +10,7 @@ import {
 } from "lucide-react";
 
 import type { Job } from "../types/job";
+import { useLanguage } from "../i18n/LanguageContext";
 
 interface JobCardProps {
     job: Job;
@@ -36,6 +37,7 @@ const formatMoney = (value?: number | null) => {
 };
 
 const JobCard: React.FC<JobCardProps> = ({ job, onDetails, hasApplied }) => {
+    const { t } = useLanguage();
     const skills = (job.matchedSkills?.length
         ? job.matchedSkills
         : (job.skills || "").split(/[,;\n]+/).map((skill) => skill.trim()).filter(Boolean)
@@ -47,12 +49,12 @@ const JobCard: React.FC<JobCardProps> = ({ job, onDetails, hasApplied }) => {
                 <div className="job-card-topline">
                     <span className="job-card-company">
                         <Building2 size={14} aria-hidden="true" />
-                        {job.companyName || "Company"}
+                        {job.companyName || t("job.company")}
                     </span>
                     {job.matchPercentage !== null && job.matchPercentage !== undefined && (
                         <span className="job-card-match">
                             <Sparkles size={13} aria-hidden="true" />
-                            {job.matchPercentage.toFixed(0)}% match
+                            {job.matchPercentage.toFixed(0)}% {t("job.match")}
                         </span>
                     )}
                 </div>
@@ -60,7 +62,7 @@ const JobCard: React.FC<JobCardProps> = ({ job, onDetails, hasApplied }) => {
                 <h3 className="job-card-title">{job.title}</h3>
 
                 <div className="job-card-meta">
-                    <span><MapPin size={14} aria-hidden="true" />{job.location || "Location not specified"}</span>
+                    <span><MapPin size={14} aria-hidden="true" />{job.location || t("job.locationUnavailable")}</span>
                     <span><BriefcaseBusiness size={14} aria-hidden="true" />{formatLabel(job.employmentType)}</span>
                     <span><Clock3 size={14} aria-hidden="true" />{formatLabel(job.experienceLevel)}</span>
                 </div>
@@ -68,11 +70,11 @@ const JobCard: React.FC<JobCardProps> = ({ job, onDetails, hasApplied }) => {
                 <p className="job-card-description">
                     {job.description?.length > 130
                         ? `${job.description.substring(0, 130)}…`
-                        : job.description || "No description provided."}
+                        : job.description || t("job.noDescription")}
                 </p>
 
                 {skills.length > 0 && (
-                    <div className="job-card-skills" aria-label="Relevant skills">
+                    <div className="job-card-skills" aria-label={t("job.relevantSkills")}>
                         {skills.map((skill, index) => (
                             <span key={`${skill}-${index}`}>{skill}</span>
                         ))}
@@ -86,21 +88,21 @@ const JobCard: React.FC<JobCardProps> = ({ job, onDetails, hasApplied }) => {
                     <div className="job-card-salary">
                         <WalletCards size={16} aria-hidden="true" />
                         <div>
-                            <small>Salary range</small>
+                            <small>{t("job.salaryRange")}</small>
                             <strong>{formatMoney(job.salaryMin)} – {formatMoney(job.salaryMax)}</strong>
                         </div>
                     </div>
 
                     <div className="job-card-actions">
                         <button type="button" className="job-card-secondary" onClick={() => onDetails(job)}>
-                            Details
+                            {t("job.details")}
                             <ArrowUpRight size={15} aria-hidden="true" />
                         </button>
                         {hasApplied ? (
-                            <span className="job-card-applied">Applied <span aria-hidden="true">✓</span></span>
+                            <span className="job-card-applied">{t("job.applied")} <span aria-hidden="true">✓</span></span>
                         ) : (
                             <button type="button" className="job-card-primary" onClick={() => onDetails(job)}>
-                                Apply
+                                {t("job.apply")}
                                 <ArrowUpRight size={15} aria-hidden="true" />
                             </button>
                         )}

@@ -17,6 +17,8 @@ import {
 } from "lucide-react";
 
 import { loginUser, saveLoginData } from "../../services/authService";
+import { useLanguage } from "../../i18n/LanguageContext";
+import LanguageSelector from "../../components/LanguageSelector";
 
 const Login: React.FC = () => {
     const navigate = useNavigate();
@@ -25,13 +27,14 @@ const Login: React.FC = () => {
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState("");
     const [loading, setLoading] = useState(false);
+    const { t } = useLanguage();
 
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setError("");
 
         if (!email.trim() || !password) {
-            setError("Enter your email and password to continue.");
+            setError(t("auth.loginRequired"));
             return;
         }
 
@@ -58,8 +61,8 @@ const Login: React.FC = () => {
             setError(
                 axios.isAxiosError(requestError)
                     ? requestError.response?.data?.message ||
-                          "We could not sign you in. Check your details and try again."
-                    : "We could not sign you in. Please try again."
+                          t("auth.loginError")
+                    : t("auth.loginGenericError")
             );
         } finally {
             setLoading(false);
@@ -80,33 +83,31 @@ const Login: React.FC = () => {
                     <div className="auth-aside-content">
                         <span className="auth-eyebrow">
                             <Sparkles size={14} aria-hidden="true" />
-                            AI-powered recruitment
+                            {t("auth.aiKicker")}
                         </span>
-                        <h1>Find work that fits your real skills.</h1>
-                        <p>
-                            SmartHire connects candidates with meaningful opportunities and gives recruiters clearer evidence to make better decisions.
-                        </p>
+                        <h1>{t("auth.loginAsideTitle")}</h1>
+                        <p>{t("auth.loginAsideDescription")}</p>
 
                         <div className="auth-feature-list">
                             <div className="auth-feature">
                                 <span><CheckCircle2 size={16} aria-hidden="true" /></span>
                                 <div>
-                                    <strong>Transparent matching</strong>
-                                    <small>See matched, related and missing skills.</small>
+                                    <strong>{t("auth.transparentTitle")}</strong>
+                                    <small>{t("auth.transparentDescription")}</small>
                                 </div>
                             </div>
                             <div className="auth-feature">
                                 <span><FileText size={16} aria-hidden="true" /></span>
                                 <div>
-                                    <strong>One application workspace</strong>
-                                    <small>Track every role and its current status.</small>
+                                    <strong>{t("auth.workspaceTitle")}</strong>
+                                    <small>{t("auth.workspaceDescription")}</small>
                                 </div>
                             </div>
                             <div className="auth-feature">
                                 <span><ShieldCheck size={16} aria-hidden="true" /></span>
                                 <div>
-                                    <strong>Built for human decisions</strong>
-                                    <small>AI supports review; people stay in control.</small>
+                                    <strong>{t("auth.humanTitle")}</strong>
+                                    <small>{t("auth.humanDescription")}</small>
                                 </div>
                             </div>
                         </div>
@@ -116,19 +117,22 @@ const Login: React.FC = () => {
                         <span className="auth-aside-footer-icon">
                             <BriefcaseBusiness size={14} aria-hidden="true" />
                         </span>
-                        <span>One place for better career decisions.</span>
+                        <span>{t("auth.loginAsideFooter")}</span>
                     </div>
                 </aside>
 
                 <section className="auth-panel-shell">
                     <div className="auth-panel">
+                        <div className="auth-panel-topbar">
+                            <LanguageSelector />
+                        </div>
                         <div className="auth-panel-heading">
                             <div className="auth-panel-icon">
                                 <UserRound size={22} aria-hidden="true" />
                             </div>
-                            <span className="auth-panel-kicker">Welcome back</span>
-                            <h2>Sign in to SmartHire</h2>
-                            <p>Continue where you left off.</p>
+                            <span className="auth-panel-kicker">{t("auth.welcomeBack")}</span>
+                            <h2>{t("auth.signInTitle")}</h2>
+                            <p>{t("auth.signInDescription")}</p>
                         </div>
 
                         {error && (
@@ -140,7 +144,7 @@ const Login: React.FC = () => {
 
                         <form className="auth-form" onSubmit={handleSubmit}>
                             <div className="auth-field">
-                                <label htmlFor="login-email">Email address</label>
+                                <label htmlFor="login-email">{t("auth.email")}</label>
                                 <div className="auth-input-wrap">
                                     <Mail size={17} aria-hidden="true" />
                                     <input
@@ -157,8 +161,10 @@ const Login: React.FC = () => {
 
                             <div className="auth-field">
                                 <div className="auth-label-row">
-                                    <label htmlFor="login-password">Password</label>
-                                    <span className="auth-field-note">Keep it private</span>
+                                    <label htmlFor="login-password">{t("auth.password")}</label>
+                                    <Link className="auth-forgot-link" to="/forgot-password">
+                                        {t("auth.forgotPassword")}
+                                    </Link>
                                 </div>
                                 <div className="auth-input-wrap">
                                     <LockKeyhole size={17} aria-hidden="true" />
@@ -167,7 +173,7 @@ const Login: React.FC = () => {
                                         type={showPassword ? "text" : "password"}
                                         value={password}
                                         onChange={(event) => setPassword(event.target.value)}
-                                        placeholder="Enter your password"
+                                        placeholder={t("auth.passwordPlaceholder")}
                                         autoComplete="current-password"
                                         required
                                     />
@@ -175,7 +181,7 @@ const Login: React.FC = () => {
                                         type="button"
                                         className="auth-input-action"
                                         onClick={() => setShowPassword((visible) => !visible)}
-                                        aria-label={showPassword ? "Hide password" : "Show password"}
+                                        aria-label={showPassword ? t("security.hidePassword") : t("security.showPassword")}
                                     >
                                         {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                                     </button>
@@ -183,21 +189,24 @@ const Login: React.FC = () => {
                             </div>
 
                             <button type="submit" className="auth-submit" disabled={loading}>
-                                <span>{loading ? "Signing in…" : "Sign in"}</span>
+                                <span>{loading ? t("auth.signingIn") : t("auth.signIn")}</span>
                                 {!loading && <ArrowRight size={17} aria-hidden="true" />}
                             </button>
                         </form>
 
                         <div className="auth-panel-footer">
-                            <span>New to SmartHire?</span>
+                            <span>{t("auth.newTo")}</span>
                             <button type="button" onClick={() => navigate("/register")}>
-                                Create an account
+                                {t("auth.createAccount")}
                                 <ArrowRight size={14} aria-hidden="true" />
                             </button>
                         </div>
 
                         <p className="auth-footnote">
-                            By continuing, you agree to use matching insights as guidance and review opportunities carefully.
+                            {t("auth.terms")}
+                        </p>
+                        <p className="auth-footnote auth-verification-note">
+                            {t("auth.noVerification")} <Link to="/resend-verification">{t("auth.sendAgain")}</Link>
                         </p>
                     </div>
                 </section>

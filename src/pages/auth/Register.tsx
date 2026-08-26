@@ -18,6 +18,8 @@ import {
 
 import { registerUser } from "../../services/authService";
 import type { RegisterRequest, RoleEnum } from "../../types/auth";
+import { useLanguage } from "../../i18n/LanguageContext";
+import LanguageSelector from "../../components/LanguageSelector";
 
 const Register: React.FC = () => {
     const navigate = useNavigate();
@@ -38,6 +40,7 @@ const Register: React.FC = () => {
     const [error, setError] = useState("");
     const [success, setSuccess] = useState("");
     const [loading, setLoading] = useState(false);
+    const { t } = useLanguage();
 
     const handleChange = (event: React.ChangeEvent<HTMLInputElement>) => {
         const { name, value } = event.target;
@@ -55,22 +58,22 @@ const Register: React.FC = () => {
         setSuccess("");
 
         if (!form.fullName.trim() || !form.email.trim() || !form.password) {
-            setError("Complete the required fields before creating your account.");
+            setError(t("auth.requiredRegister"));
             return;
         }
 
         if (form.password.length < 8) {
-            setError("Your password should contain at least 8 characters.");
+            setError(t("auth.passwordLength"));
             return;
         }
 
         if (form.password !== form.confirmPassword) {
-            setError("The passwords do not match. Check both fields and try again.");
+            setError(t("auth.passwordMismatch"));
             return;
         }
 
         if (form.role === "RECRUITER" && (!form.companyName.trim() || !form.positionTitle.trim())) {
-            setError("Company name and position title are required for recruiter accounts.");
+            setError(t("auth.recruiterRequired"));
             return;
         }
 
@@ -97,17 +100,17 @@ const Register: React.FC = () => {
             }
 
             await registerUser(data);
-            setSuccess("Account created successfully. Taking you to sign in…");
+            setSuccess(t("auth.registerSuccess"));
 
-            window.setTimeout(() => navigate("/login"), 1200);
+            window.setTimeout(() => navigate("/login"), 2600);
         } catch (requestError: unknown) {
             console.error(requestError);
 
             setError(
                 axios.isAxiosError(requestError)
                     ? requestError.response?.data?.message ||
-                          "We could not create your account. Please try again."
-                    : "We could not create your account. Please try again."
+                          t("auth.registerError")
+                    : t("auth.registerError")
             );
         } finally {
             setLoading(false);
@@ -128,27 +131,25 @@ const Register: React.FC = () => {
                     <div className="auth-aside-content">
                         <span className="auth-eyebrow">
                             <Sparkles size={14} aria-hidden="true" />
-                            Start with the right context
+                            {t("auth.registerKicker")}
                         </span>
-                        <h1>Build a profile people can understand.</h1>
-                        <p>
-                            Whether you are building your next career move or your next team, SmartHire keeps the important details clear from the first step.
-                        </p>
+                        <h1>{t("auth.registerAsideTitle")}</h1>
+                        <p>{t("auth.registerAsideDescription")}</p>
 
                         <div className="auth-journey">
                             <div className="auth-journey-step active">
                                 <span>01</span>
-                                <div><strong>Create your account</strong><small>Tell us who you are.</small></div>
+                                <div><strong>{t("auth.registerStepOne")}</strong><small>{t("auth.registerStepOneDescription")}</small></div>
                             </div>
                             <div className="auth-journey-line" />
                             <div className="auth-journey-step">
                                 <span>02</span>
-                                <div><strong>Add useful context</strong><small>Skills, company or experience.</small></div>
+                                <div><strong>{t("auth.registerStepTwo")}</strong><small>{t("auth.registerStepTwoDescription")}</small></div>
                             </div>
                             <div className="auth-journey-line" />
                             <div className="auth-journey-step">
                                 <span>03</span>
-                                <div><strong>Make a better match</strong><small>Use evidence to move forward.</small></div>
+                                <div><strong>{t("auth.registerStepThree")}</strong><small>{t("auth.registerStepThreeDescription")}</small></div>
                             </div>
                         </div>
                     </div>
@@ -156,13 +157,16 @@ const Register: React.FC = () => {
 
                 <section className="auth-panel-shell">
                     <div className="auth-panel auth-panel-register">
+                        <div className="auth-panel-topbar">
+                            <LanguageSelector />
+                        </div>
                         <div className="auth-panel-heading">
                             <div className="auth-panel-icon">
                                 <UserRound size={22} aria-hidden="true" />
                             </div>
-                            <span className="auth-panel-kicker">Create your workspace</span>
-                            <h2>Join SmartHire</h2>
-                            <p>Start with a few details. You can complete your profile later.</p>
+                            <span className="auth-panel-kicker">{t("auth.createWorkspace")}</span>
+                            <h2>{t("auth.joinTitle")}</h2>
+                            <p>{t("auth.joinDescription")}</p>
                         </div>
 
                         {error && (
@@ -181,7 +185,7 @@ const Register: React.FC = () => {
 
                         <form className="auth-form" onSubmit={handleSubmit}>
                             <div className="auth-field">
-                                <label htmlFor="register-fullName">Full name</label>
+                                <label htmlFor="register-fullName">{t("auth.fullName")}</label>
                                 <div className="auth-input-wrap">
                                     <UserRound size={17} aria-hidden="true" />
                                     <input
@@ -190,7 +194,7 @@ const Register: React.FC = () => {
                                         type="text"
                                         value={form.fullName}
                                         onChange={handleChange}
-                                        placeholder="Your full name"
+                                        placeholder={t("auth.fullNamePlaceholder")}
                                         autoComplete="name"
                                         required
                                     />
@@ -198,7 +202,7 @@ const Register: React.FC = () => {
                             </div>
 
                             <div className="auth-field">
-                                <label htmlFor="register-email">Email address</label>
+                                <label htmlFor="register-email">{t("auth.email")}</label>
                                 <div className="auth-input-wrap">
                                     <Mail size={17} aria-hidden="true" />
                                     <input
@@ -215,7 +219,7 @@ const Register: React.FC = () => {
                             </div>
 
                             <div className="auth-field">
-                                <span className="auth-field-label">I am joining as</span>
+                                <span className="auth-field-label">{t("auth.joiningAs")}</span>
                                 <div className="auth-role-grid">
                                     <button
                                         type="button"
@@ -224,7 +228,7 @@ const Register: React.FC = () => {
                                         aria-pressed={form.role === "CANDIDATE"}
                                     >
                                         <span className="auth-role-icon"><BriefcaseBusiness size={19} aria-hidden="true" /></span>
-                                        <span><strong>Candidate</strong><small>Find your next role</small></span>
+                                        <span><strong>{t("auth.candidate")}</strong><small>{t("auth.candidateHint")}</small></span>
                                         {form.role === "CANDIDATE" && <CheckCircle2 className="auth-role-check" size={17} aria-hidden="true" />}
                                     </button>
                                     <button
@@ -234,7 +238,7 @@ const Register: React.FC = () => {
                                         aria-pressed={form.role === "RECRUITER"}
                                     >
                                         <span className="auth-role-icon"><Building2 size={19} aria-hidden="true" /></span>
-                                        <span><strong>Recruiter</strong><small>Build your talent pipeline</small></span>
+                                        <span><strong>{t("auth.recruiter")}</strong><small>{t("auth.recruiterHint")}</small></span>
                                         {form.role === "RECRUITER" && <CheckCircle2 className="auth-role-check" size={17} aria-hidden="true" />}
                                     </button>
                                 </div>
@@ -242,7 +246,7 @@ const Register: React.FC = () => {
 
                             <div className="auth-form-grid">
                                 <div className="auth-field">
-                                    <label htmlFor="register-password">Password</label>
+                                    <label htmlFor="register-password">{t("auth.password")}</label>
                                     <div className="auth-input-wrap">
                                         <LockKeyhole size={17} aria-hidden="true" />
                                         <input
@@ -251,7 +255,7 @@ const Register: React.FC = () => {
                                             type={showPassword ? "text" : "password"}
                                             value={form.password}
                                             onChange={handleChange}
-                                            placeholder="At least 8 characters"
+                                            placeholder={t("security.atLeast8")}
                                             autoComplete="new-password"
                                             minLength={8}
                                             required
@@ -260,7 +264,7 @@ const Register: React.FC = () => {
                                             type="button"
                                             className="auth-input-action"
                                             onClick={() => setShowPassword((visible) => !visible)}
-                                            aria-label={showPassword ? "Hide password" : "Show password"}
+                                            aria-label={showPassword ? t("security.hidePassword") : t("security.showPassword")}
                                         >
                                             {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                                         </button>
@@ -268,7 +272,7 @@ const Register: React.FC = () => {
                                 </div>
 
                                 <div className="auth-field">
-                                    <label htmlFor="register-confirmPassword">Confirm password</label>
+                                    <label htmlFor="register-confirmPassword">{t("auth.confirmPassword")}</label>
                                     <div className="auth-input-wrap">
                                         <LockKeyhole size={17} aria-hidden="true" />
                                         <input
@@ -277,7 +281,7 @@ const Register: React.FC = () => {
                                             type={showConfirmPassword ? "text" : "password"}
                                             value={form.confirmPassword}
                                             onChange={handleChange}
-                                            placeholder="Repeat your password"
+                                            placeholder={t("auth.confirmPassword")}
                                             autoComplete="new-password"
                                             minLength={8}
                                             required
@@ -286,7 +290,7 @@ const Register: React.FC = () => {
                                             type="button"
                                             className="auth-input-action"
                                             onClick={() => setShowConfirmPassword((visible) => !visible)}
-                                            aria-label={showConfirmPassword ? "Hide password" : "Show password"}
+                                            aria-label={showConfirmPassword ? t("security.hidePassword") : t("security.showPassword")}
                                         >
                                             {showConfirmPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                                         </button>
@@ -296,14 +300,14 @@ const Register: React.FC = () => {
 
                             <div className="auth-role-details">
                                 <div className="auth-role-details-heading">
-                                    <span>{form.role === "CANDIDATE" ? "Candidate profile" : "Recruiter profile"}</span>
-                                    <small>{form.role === "CANDIDATE" ? "Optional context for better matching" : "A few details about your company role"}</small>
+                                    <span>{form.role === "CANDIDATE" ? `${t("auth.candidate")} ${t("nav.profile")}` : `${t("auth.recruiter")} ${t("nav.profile")}`}</span>
+                                    <small>{form.role === "CANDIDATE" ? t("auth.transparentDescription") : t("auth.recruiterHint")}</small>
                                 </div>
 
                                 {form.role === "CANDIDATE" ? (
                                     <div className="auth-form-grid">
                                         <div className="auth-field">
-                                            <label htmlFor="register-headline">Professional headline <span>Optional</span></label>
+                                            <label htmlFor="register-headline">{t("auth.headline")} <span>{t("auth.optional")}</span></label>
                                             <input
                                                 id="register-headline"
                                                 name="headline"
@@ -315,7 +319,7 @@ const Register: React.FC = () => {
                                             />
                                         </div>
                                         <div className="auth-field">
-                                            <label htmlFor="register-industryDomain">Industry <span>Optional</span></label>
+                                            <label htmlFor="register-industryDomain">{t("auth.industry")} <span>{t("auth.optional")}</span></label>
                                             <input
                                                 id="register-industryDomain"
                                                 name="industryDomain"
@@ -330,7 +334,7 @@ const Register: React.FC = () => {
                                 ) : (
                                     <div className="auth-form-grid">
                                         <div className="auth-field">
-                                            <label htmlFor="register-companyName">Company name</label>
+                                            <label htmlFor="register-companyName">{t("auth.companyName")}</label>
                                             <div className="auth-input-wrap">
                                                 <Building2 size={17} aria-hidden="true" />
                                                 <input
@@ -339,13 +343,13 @@ const Register: React.FC = () => {
                                                     type="text"
                                                     value={form.companyName}
                                                     onChange={handleChange}
-                                                    placeholder="Company name"
+                                                    placeholder={t("auth.companyName")}
                                                     required
                                                 />
                                             </div>
                                         </div>
                                         <div className="auth-field">
-                                            <label htmlFor="register-positionTitle">Your position</label>
+                                            <label htmlFor="register-positionTitle">{t("auth.positionTitle")}</label>
                                             <input
                                                 id="register-positionTitle"
                                                 name="positionTitle"
@@ -358,7 +362,7 @@ const Register: React.FC = () => {
                                             />
                                         </div>
                                         <div className="auth-field auth-field-full">
-                                            <label htmlFor="register-companyWebsite">Company website <span>Optional</span></label>
+                                            <label htmlFor="register-companyWebsite">{t("auth.companyWebsite")} <span>{t("auth.optional")}</span></label>
                                             <div className="auth-input-wrap">
                                                 <Globe2 size={17} aria-hidden="true" />
                                                 <input
@@ -376,15 +380,15 @@ const Register: React.FC = () => {
                             </div>
 
                             <button type="submit" className="auth-submit" disabled={loading}>
-                                <span>{loading ? "Creating account…" : "Create account"}</span>
+                                <span>{loading ? t("auth.creating") : t("auth.createButton")}</span>
                                 {!loading && <ArrowRight size={17} aria-hidden="true" />}
                             </button>
                         </form>
 
                         <div className="auth-panel-footer">
-                            <span>Already have an account?</span>
+                            <span>{t("auth.alreadyAccount")}</span>
                             <button type="button" onClick={() => navigate("/login")}>
-                                Sign in
+                                {t("auth.signIn")}
                                 <ArrowRight size={14} aria-hidden="true" />
                             </button>
                         </div>

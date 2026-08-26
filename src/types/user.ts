@@ -32,6 +32,7 @@ export interface UserDetails {
     email: string;
     fullName: string;
     role: RoleEnum;
+    emailVerified: boolean;
     createdAt: string;
 
     candidateProfile?: CandidateProfile | null;
@@ -43,5 +44,27 @@ export interface UserList {
     fullName: string;
     email: string;
     role: RoleEnum;
+    emailVerified: boolean;
     createdAt: string;
+}
+
+export interface UpdateUserRequest {
+    fullName: string;
+    email: string;
+    role?: RoleEnum;
+    headline?: string;
+    industryDomain?: string;
+    companyName?: string;
+    companyWebsite?: string;
+    positionTitle?: string;
+}
+
+export interface UserPage {
+    content: UserList[];
+    totalElements: number;
+    totalPages: number;
+    number: number;
+    size: number;
+    first: boolean;
+    last: boolean;
 }

@@ -17,6 +17,7 @@ import {
     SectionCard,
     StatusBadge,
 } from "../../components/dashboard/DashboardPrimitives";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 const normalizeImportance = (importance?: string): SkillImportance => {
     if (importance === "MUST_HAVE" || importance === "NICE_TO_HAVE") {
@@ -58,6 +59,7 @@ const CreateJob: React.FC = () => {
     const { jobId } = useParams<{ jobId: string }>();
     const editingJobId = jobId ? Number(jobId) : null;
     const isEditing = editingJobId !== null && Number.isFinite(editingJobId);
+    const { t } = useLanguage();
     const [form, setForm] = useState<JobFormState>({
         title: "",
         description: "",
@@ -103,14 +105,14 @@ const CreateJob: React.FC = () => {
                 });
             } catch (loadError) {
                 console.error("Failed to load job for editing:", loadError);
-                setError("The job could not be loaded. It may no longer exist.");
+                setError(t("recruiter.jobsUnavailable"));
             } finally {
                 setInitialLoading(false);
             }
         };
 
         void loadJob();
-    }, [editingJobId, isEditing]);
+    }, [editingJobId, isEditing, t]);
 
     const updateField = <K extends keyof JobFormState>(
         field: K,
@@ -124,12 +126,12 @@ const CreateJob: React.FC = () => {
         setError("");
 
         if (form.salaryMax < form.salaryMin) {
-            setError("Maximum salary must be greater than or equal to minimum salary.");
+            setError(t("recruiter.maximumSalary"));
             return;
         }
 
         if (!form.skillRequirements.length) {
-            setError("Add at least one skill and choose its importance.");
+            setError(t("recruiter.addSkillHelp"));
             return;
         }
 
@@ -137,7 +139,7 @@ const CreateJob: React.FC = () => {
             form.skillRequirements.map((skill) => skill.name.trim().toLocaleLowerCase())
         );
         if (uniqueSkillNames.size !== form.skillRequirements.length) {
-            setError("Each skill can only be added once.");
+            setError(t("recruiter.addSkillHelp"));
             return;
         }
 
@@ -163,7 +165,7 @@ const CreateJob: React.FC = () => {
             navigate(`/recruiter/jobs/${savedJob.id}`);
         } catch (submitError) {
             console.error("Failed to save job:", submitError);
-            setError("The job could not be saved. Check the fields and try again.");
+            setError(t("common.tryAgain"));
         } finally {
             setLoading(false);
         }
@@ -179,7 +181,7 @@ const CreateJob: React.FC = () => {
             (skill) => skill.name.trim().toLocaleLowerCase() === name.toLocaleLowerCase()
         );
         if (alreadyAdded) {
-            setError("This skill has already been added.");
+            setError(t("recruiter.addSkillHelp"));
             return;
         }
 
@@ -225,43 +227,43 @@ const CreateJob: React.FC = () => {
 
     return (
         <DashboardShell
-            eyebrow="Recruiter workspace"
-            title={isEditing ? "Edit job" : "Create a job"}
+            eyebrow={t("recruiter.workspace")}
+            title={isEditing ? t("recruiter.editJob") : t("recruiter.newJob")}
             description={isEditing
-                ? "Keep the role details and requirements up to date."
-                : "Add the information candidates need to understand the role and its requirements."}
+                ? t("recruiter.jobOpeningsDescription")
+                : t("recruiter.roleContentDescription")}
             actions={
                 <Link to="/recruiter/jobs" className="btn btn-outline-secondary">
                     <ArrowLeft size={17} aria-hidden="true" />
-                    Back to jobs
+                    {t("recruiter.myJobs")}
                 </Link>
             }
         >
             {error && <ErrorState message={error} />}
 
-            {initialLoading && <div className="dashboard-state">Loading job details…</div>}
+            {initialLoading && <div className="dashboard-state">{t("admin.loadingDetails")}</div>}
 
             {!initialLoading && <SectionCard
                 className="recruiter-job-editor-card"
-                title={isEditing ? "Update job" : "Create job"}
+                 title={isEditing ? t("recruiter.updateJob") : t("recruiter.newJob")}
                 description={isEditing
-                    ? "Review the opening and save the latest changes."
-                    : "Create a clear opening that candidates can understand at a glance."}
+                     ? t("common.saveChanges")
+                     : t("recruiter.basicInformationDescription")}
             >
                 <div className="recruiter-editor-intro">
                     <span className="recruiter-editor-icon" aria-hidden="true">
                         <BriefcaseBusiness size={21} />
                     </span>
                     <div className="recruiter-editor-intro-copy">
-                        <span>{isEditing ? "Editing an existing opening" : "A strong opening starts here"}</span>
+                         <span>{isEditing ? t("recruiter.editJob") : t("recruiter.newJob")}</span>
                         <p>{isEditing
-                            ? "Make the changes you need, then save to update this job."
-                            : "Add the role details, expectations and skills candidates need."}</p>
+                             ? t("common.saveChanges")
+                             : t("recruiter.roleContentDescription")}</p>
                     </div>
                     {isEditing ? (
                         <StatusBadge status={form.status} />
                     ) : (
-                        <span className="recruiter-editor-draft-note">Starts as draft</span>
+                         <span className="recruiter-editor-draft-note">{t("recruiter.draftNote")}</span>
                     )}
                 </div>
                 <form onSubmit={handleSubmit} className="recruiter-job-form">
@@ -269,12 +271,12 @@ const CreateJob: React.FC = () => {
                         <div className="recruiter-form-section-heading recruiter-job-field-full">
                             <span className="recruiter-form-section-number">01</span>
                             <div>
-                            <h3>Basic information</h3>
-                            <p>Define the role, location and working arrangement.</p>
+                            <h3>{t("recruiter.basicInformation")}</h3>
+                            <p>{t("recruiter.basicInformationDescription")}</p>
                             </div>
                         </div>
                         <div className="recruiter-job-field recruiter-job-field-title">
-                            <label className="form-label" htmlFor="job-title">Job title *</label>
+                            <label className="form-label" htmlFor="job-title">{t("recruiter.jobTitle")} *</label>
                             <input
                                 id="job-title"
                                 className="form-control"
@@ -284,7 +286,7 @@ const CreateJob: React.FC = () => {
                             />
                         </div>
                         <div className="recruiter-job-field recruiter-job-field-location">
-                            <label className="form-label" htmlFor="job-location">Location *</label>
+                            <label className="form-label" htmlFor="job-location">{t("jobs.location")} *</label>
                             <input
                                 id="job-location"
                                 className="form-control"
@@ -294,41 +296,41 @@ const CreateJob: React.FC = () => {
                             />
                         </div>
                         <div className="recruiter-job-field recruiter-job-field-small">
-                            <label className="form-label" htmlFor="employment-type">Employment type *</label>
+                            <label className="form-label" htmlFor="employment-type">{t("recruiter.employmentType")} *</label>
                             <select
                                 id="employment-type"
                                 className="form-select"
                                 value={form.employmentType}
                                 onChange={(event) => updateField("employmentType", event.target.value as EmploymentType)}
                             >
-                                <option value="FULL_TIME">Full time</option>
-                                <option value="PART_TIME">Part time</option>
-                                <option value="CONTRACT">Contract</option>
-                                <option value="INTERNSHIP">Internship</option>
+                                <option value="FULL_TIME">{t("jobs.fullTime")}</option>
+                                <option value="PART_TIME">{t("jobs.partTime")}</option>
+                                <option value="CONTRACT">{t("jobs.contract")}</option>
+                                <option value="INTERNSHIP">{t("jobs.internship")}</option>
                             </select>
                         </div>
                         <div className="recruiter-job-field recruiter-job-field-small">
-                            <label className="form-label" htmlFor="experience-level">Experience level *</label>
+                            <label className="form-label" htmlFor="experience-level">{t("recruiter.experienceLevel")} *</label>
                             <select
                                 id="experience-level"
                                 className="form-select"
                                 value={form.experienceLevel}
                                 onChange={(event) => updateField("experienceLevel", event.target.value as ExperienceLevel)}
                             >
-                                <option value="ENTRY_LEVEL">Entry level</option>
-                                <option value="MID_LEVEL">Mid level</option>
-                                <option value="SENIOR_LEVEL">Senior level</option>
+                                <option value="ENTRY_LEVEL">{t("jobs.entryLevel")}</option>
+                                <option value="MID_LEVEL">{t("jobs.midLevel")}</option>
+                                <option value="SENIOR_LEVEL">{t("jobs.seniorLevel")}</option>
                             </select>
                         </div>
                         <div className="recruiter-form-section-heading recruiter-job-field-full">
                             <span className="recruiter-form-section-number">02</span>
                             <div>
-                            <h3>Compensation &amp; timeline</h3>
-                            <p>Set the salary range, application deadline and publication status.</p>
+                            <h3>{t("recruiter.compensationTimeline")}</h3>
+                            <p>{t("recruiter.compensationDescription")}</p>
                             </div>
                         </div>
                         <div className="recruiter-job-field">
-                            <label className="form-label" htmlFor="salary-min">Minimum salary *</label>
+                            <label className="form-label" htmlFor="salary-min">{t("recruiter.minimumSalary")} *</label>
                             <input
                                 id="salary-min"
                                 type="number"
@@ -340,7 +342,7 @@ const CreateJob: React.FC = () => {
                             />
                         </div>
                         <div className="recruiter-job-field">
-                            <label className="form-label" htmlFor="salary-max">Maximum salary *</label>
+                            <label className="form-label" htmlFor="salary-max">{t("recruiter.maximumSalary")} *</label>
                             <input
                                 id="salary-max"
                                 type="number"
@@ -352,7 +354,7 @@ const CreateJob: React.FC = () => {
                             />
                         </div>
                         <div className="recruiter-job-field">
-                            <label className="form-label" htmlFor="application-deadline">Application deadline *</label>
+                            <label className="form-label" htmlFor="application-deadline">{t("recruiter.applicationDeadline")} *</label>
                             <input
                                 id="application-deadline"
                                 type="date"
@@ -364,29 +366,29 @@ const CreateJob: React.FC = () => {
                         </div>
                         {isEditing && (
                             <div className="recruiter-job-field">
-                                <label className="form-label" htmlFor="job-status">Job status *</label>
+                                <label className="form-label" htmlFor="job-status">{t("recruiter.jobStatus")} *</label>
                                 <select
                                     id="job-status"
                                     className="form-select"
                                     value={form.status}
                                     onChange={(event) => updateField("status", event.target.value as JobStatus)}
                                 >
-                                    <option value="DRAFT">Draft</option>
-                                    <option value="PUBLISHED">Published</option>
-                                    <option value="CLOSED">Closed</option>
+                                    <option value="DRAFT">{t("recruiter.draft")}</option>
+                                    <option value="PUBLISHED">{t("recruiter.published")}</option>
+                                    <option value="CLOSED">{t("recruiter.closed")}</option>
                                 </select>
-                                <small className="recruiter-field-help">Published jobs are visible to candidates.</small>
+                                <small className="recruiter-field-help">{t("recruiter.publishedVisible")}</small>
                             </div>
                         )}
                         <div className="recruiter-form-section-heading recruiter-job-field-full">
                             <span className="recruiter-form-section-number">03</span>
                             <div>
-                            <h3>Role content</h3>
-                            <p>Give candidates the context and expectations they need before applying.</p>
+                            <h3>{t("recruiter.roleContent")}</h3>
+                            <p>{t("recruiter.roleContentDescription")}</p>
                             </div>
                         </div>
                         <div className="recruiter-job-field recruiter-job-field-content-wide">
-                            <label className="form-label" htmlFor="job-description">Description *</label>
+                            <label className="form-label" htmlFor="job-description">{t("recruiter.description")} *</label>
                             <textarea
                                 id="job-description"
                                 className="form-control"
@@ -397,7 +399,7 @@ const CreateJob: React.FC = () => {
                             />
                         </div>
                         <div className="recruiter-job-field recruiter-job-field-content">
-                            <label className="form-label" htmlFor="job-requirements">Requirements *</label>
+                            <label className="form-label" htmlFor="job-requirements">{t("recruiter.requirements")} *</label>
                             <textarea
                                 id="job-requirements"
                                 className="form-control"
@@ -411,12 +413,12 @@ const CreateJob: React.FC = () => {
                         <div className="recruiter-form-section-heading recruiter-job-field-full">
                             <span className="recruiter-form-section-number">04</span>
                             <div>
-                            <h3>Skills &amp; importance</h3>
-                            <p>Prioritise skills so the matching service can weigh them correctly.</p>
+                            <h3>{t("recruiter.skillsImportance")}</h3>
+                            <p>{t("recruiter.skillsImportanceDescription")}</p>
                             </div>
                         </div>
                         <div className="recruiter-job-field recruiter-job-field-full recruiter-skill-editor">
-                            <label className="form-label" htmlFor="job-skill-name">Skills and importance *</label>
+                            <label className="form-label" htmlFor="job-skill-name">{t("recruiter.skillsLabel")} *</label>
                             <div className="recruiter-skill-add-row">
                                 <div className="recruiter-skill-add-name">
                                     <input
@@ -439,18 +441,18 @@ const CreateJob: React.FC = () => {
                                         value={skillImportance}
                                         onChange={(event) => setSkillImportance(event.target.value as SkillImportance)}
                                     >
-                                        <option value="MUST_HAVE">Must-have</option>
-                                        <option value="IMPORTANT">Important</option>
-                                        <option value="NICE_TO_HAVE">Nice-to-have</option>
+                                        <option value="MUST_HAVE">{t("recruiter.mustHave")}</option>
+                                        <option value="IMPORTANT">{t("recruiter.important")}</option>
+                                        <option value="NICE_TO_HAVE">{t("recruiter.niceToHave")}</option>
                                     </select>
                                 </div>
                                 <div className="recruiter-skill-add-action">
                                     <button type="button" className="btn btn-outline-primary" onClick={addSkill}>
-                                        <Plus size={16} aria-hidden="true" /> Add
+                                        <Plus size={16} aria-hidden="true" /> {t("recruiter.add")}
                                     </button>
                                 </div>
                             </div>
-                            <p className="form-text">Add each skill separately so the matching score can respect its importance.</p>
+                            <p className="form-text">{t("recruiter.addSkillHelp")}</p>
                             {form.skillRequirements.length > 0 && (
                                 <div className="recruiter-skill-list">
                                     {form.skillRequirements.map((skill, index) => (
@@ -468,9 +470,9 @@ const CreateJob: React.FC = () => {
                                                 aria-label={`Importance for ${skill.name}`}
                                                 onChange={(event) => updateSkillImportance(index, event.target.value as SkillImportance)}
                                             >
-                                                <option value="MUST_HAVE">Must-have</option>
-                                                <option value="IMPORTANT">Important</option>
-                                                <option value="NICE_TO_HAVE">Nice-to-have</option>
+                                                 <option value="MUST_HAVE">{t("recruiter.mustHave")}</option>
+                                                 <option value="IMPORTANT">{t("recruiter.important")}</option>
+                                                 <option value="NICE_TO_HAVE">{t("recruiter.niceToHave")}</option>
                                             </select>
                                             <button
                                                 type="button"
@@ -490,10 +492,10 @@ const CreateJob: React.FC = () => {
                     <div className="recruiter-job-form-actions">
                         <button type="submit" className="btn btn-primary" disabled={loading}>
                             <Save size={17} aria-hidden="true" />
-                            {loading ? "Saving…" : "Save job"}
+                            {loading ? t("security.saving") : isEditing ? t("recruiter.updateJob") : t("recruiter.saveDraft")}
                         </button>
                         <Link to="/recruiter/jobs" className="btn btn-light">
-                            Cancel
+                            {t("common.cancel")}
                         </Link>
                     </div>
                 </form>

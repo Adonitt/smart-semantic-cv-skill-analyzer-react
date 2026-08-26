@@ -18,6 +18,7 @@ import {
     SectionCard,
     StatusBadge,
 } from "../../components/dashboard/DashboardPrimitives";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 interface CandidateDashboardData {
     jobs: Job[] | null;
@@ -28,6 +29,7 @@ interface CandidateDashboardData {
 const CandidateDashboard: React.FC = () => {
     const fullName = localStorage.getItem("fullName") || "Candidate";
     const email = localStorage.getItem("email") || "";
+    const { t } = useLanguage();
 
     const [data, setData] = useState<CandidateDashboardData>({
         jobs: null,
@@ -110,13 +112,13 @@ const CandidateDashboard: React.FC = () => {
 
     return (
         <DashboardShell
-            eyebrow="Candidate workspace"
-            title={`Welcome, ${fullName}`}
-            description="Find relevant opportunities and follow every application from one place."
+            eyebrow={t("candidate.workspace")}
+            title={t("candidate.welcome", { name: fullName })}
+            description={t("candidate.dashboardDescription")}
             actions={
                 <Link to="/candidate/jobs" className="btn btn-primary">
                     <Search size={17} aria-hidden="true" />
-                    Find jobs
+                    {t("candidate.findJobs")}
                 </Link>
             }
         >
@@ -129,14 +131,14 @@ const CandidateDashboard: React.FC = () => {
 
             <div className="dashboard-metrics">
                 <MetricCard
-                    label="Available jobs"
+                    label={t("candidate.availableJobs")}
                     value={loading ? "…" : data.jobs ? data.jobs.length : "—"}
-                    hint="Published positions"
+                    hint={t("candidate.publishedPositions")}
                     icon={<BriefcaseBusiness size={21} />}
                     tone="blue"
                 />
                 <MetricCard
-                    label="My applications"
+                    label={t("candidate.myApplications")}
                     value={
                         loading
                             ? "…"
@@ -146,14 +148,14 @@ const CandidateDashboard: React.FC = () => {
                     }
                     hint={
                         activeApplications === undefined
-                            ? "Submitted applications"
-                            : `${activeApplications} currently active`
+                            ? t("candidate.submittedApplications")
+                            : t("candidate.activeApplications", { count: activeApplications })
                     }
                     icon={<FileText size={21} />}
                     tone="green"
                 />
                 <MetricCard
-                    label="Profile completeness"
+                    label={t("candidate.profileCompleteness")}
                     value={
                         loading
                             ? "…"
@@ -161,7 +163,7 @@ const CandidateDashboard: React.FC = () => {
                                 ? "—"
                                 : `${profileCompletion}%`
                     }
-                    hint="CV and profile details"
+                    hint={t("candidate.cvProfileDetails")}
                     icon={<UserRound size={21} />}
                     tone="amber"
                 />
@@ -169,25 +171,25 @@ const CandidateDashboard: React.FC = () => {
 
             <div className="dashboard-grid">
                 <SectionCard
-                    title="Recent applications"
-                    description="Your five most recent submissions, sorted by date."
+                    title={t("candidate.recentApplications")}
+                    description={t("candidate.recentApplicationsDescription")}
                     actions={
                         <Link to="/candidate/applications" className="dashboard-link">
-                            View all
+                            {t("candidate.viewAll")}
                         </Link>
                     }
                 >
-                    {loading && <div className="dashboard-state">Loading applications…</div>}
+                    {loading && <div className="dashboard-state">{t("candidate.loadingApplications")}</div>}
                     {!loading && data.applications === null && (
-                        <div className="dashboard-state">Applications are unavailable right now.</div>
+                        <div className="dashboard-state">{t("candidate.applicationsUnavailable")}</div>
                     )}
                     {!loading && data.applications && recentApplications.length === 0 && (
                         <EmptyState
-                            title="No applications yet"
-                            description="When you apply for a job, its status and match details will appear here."
+                            title={t("candidate.noApplications")}
+                            description={t("candidate.noApplicationsDescription")}
                             action={
                                 <Link to="/candidate/jobs" className="btn btn-primary btn-sm">
-                                    Browse jobs
+                                    {t("candidate.browseJobs")}
                                 </Link>
                             }
                         />
@@ -197,10 +199,10 @@ const CandidateDashboard: React.FC = () => {
                             <table className="dashboard-table">
                                 <thead>
                                     <tr>
-                                        <th scope="col">Position</th>
-                                        <th scope="col">Applied</th>
-                                        <th scope="col">Status</th>
-                                        <th scope="col">AI match</th>
+                                        <th scope="col">{t("candidate.position")}</th>
+                                        <th scope="col">{t("candidate.applied")}</th>
+                                        <th scope="col">{t("common.status")}</th>
+                                        <th scope="col">{t("candidate.aiMatch")}</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -211,7 +213,7 @@ const CandidateDashboard: React.FC = () => {
                                                     {application.jobTitle}
                                                 </span>
                                                 <span className="dashboard-secondary-cell">
-                                                    {application.companyName || "Company not provided"}
+                                                    {application.companyName || t("candidate.companyUnavailable")}
                                                 </span>
                                             </td>
                                             <td>{formatDate(application.appliedAt)}</td>
@@ -219,7 +221,7 @@ const CandidateDashboard: React.FC = () => {
                                             <td>
                                                 {application.matchPercentage === null ||
                                                 application.matchPercentage === undefined
-                                                    ? "Not available"
+                                                    ? t("candidate.notAvailable")
                                                     : `${application.matchPercentage.toFixed(1)}%`}
                                             </td>
                                         </tr>
@@ -232,30 +234,28 @@ const CandidateDashboard: React.FC = () => {
 
                 <div className="d-grid gap-3">
                     <div className="dashboard-callout">
-                        <h2>Make your profile stronger</h2>
-                        <p>
-                            A complete CV, headline and industry help recruiters understand your profile and make the matching result easier to interpret.
-                        </p>
+                        <h2>{t("candidate.profileStronger")}</h2>
+                        <p>{t("candidate.profileStrongerDescription")}</p>
                         {profileCompletion === null ? (
-                            <div className="dashboard-state">Profile data unavailable.</div>
+                            <div className="dashboard-state">{t("candidate.profileUnavailable")}</div>
                         ) : (
                             <ProgressBar value={profileCompletion} label="Profile completeness" />
                         )}
                         <Link to="/profile" className="btn btn-outline-primary btn-sm mt-3">
                             <FileCheck2 size={16} aria-hidden="true" />
-                            Update profile
+                            {t("candidate.updateProfile")}
                         </Link>
                     </div>
 
-                    <SectionCard title="Quick actions" description="Keep the next step visible.">
+                    <SectionCard title={t("candidate.quickActions")} description={t("candidate.quickActionsDescription")}>
                         <div className="d-grid gap-2 px-3 pb-3">
                             <Link to="/candidate/jobs" className="btn btn-light text-start">
                                 <Search size={17} className="me-2" aria-hidden="true" />
-                                Search jobs
+                                {t("candidate.searchJobs")}
                             </Link>
                             <Link to="/candidate/applications" className="btn btn-light text-start">
                                 <FileText size={17} className="me-2" aria-hidden="true" />
-                                Review applications
+                                {t("candidate.reviewApplications")}
                             </Link>
                         </div>
                     </SectionCard>

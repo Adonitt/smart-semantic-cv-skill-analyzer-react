@@ -1,11 +1,11 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, BriefcaseBusiness, Edit3, Eye, FileText, Plus, UsersRound } from "lucide-react";
+import { ArrowRight, BriefcaseBusiness, ChevronLeft, ChevronRight, Edit3, Eye, FileText, Plus, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { getApplicationsWithCandidate } from "../../services/applicationService";
-import { getMyJobs } from "../../services/jobService";
+import { getMyJobsPage } from "../../services/jobService";
 import type { Application } from "../../types/application";
-import type { Job } from "../../types/job";
+import type { Job, JobPage } from "../../types/job";
 import {
     DashboardShell,
     EmptyState,
@@ -16,25 +16,50 @@ import {
     SectionCard,
     StatusBadge,
 } from "../../components/dashboard/DashboardPrimitives";
+import { useLanguage } from "../../i18n/LanguageContext";
 
 type ApplicationsByJob = Record<number, Application[]>;
 
+const getPageNumbers = (currentPage: number, totalPages: number) => {
+    const visiblePages = Math.min(totalPages, 7);
+    if (visiblePages === totalPages) {
+        return Array.from({ length: visiblePages }, (_, index) => index);
+    }
+
+    if (currentPage <= 3) return [0, 1, 2, 3, 4, 5, 6];
+    if (currentPage >= totalPages - 4) {
+        return Array.from({ length: 7 }, (_, index) => totalPages - 7 + index);
+    }
+
+    return Array.from({ length: 7 }, (_, index) => currentPage - 3 + index);
+};
+
 const RecruiterDashboard: React.FC = () => {
     const fullName = localStorage.getItem("fullName") || "Recruiter";
+    const { t } = useLanguage();
     const [jobs, setJobs] = useState<Job[] | null>(null);
+    const [pagination, setPagination] = useState<JobPage | null>(null);
     const [applicationsByJob, setApplicationsByJob] = useState<ApplicationsByJob>({});
     const [loading, setLoading] = useState(true);
     const [applicationsLoaded, setApplicationsLoaded] = useState(false);
     const [hasError, setHasError] = useState(false);
+    const [currentPage, setCurrentPage] = useState(0);
+    const pageSize = 5;
 
-    const loadDashboardData = useCallback(async () => {
+    const loadDashboardData = useCallback(async (page = 0) => {
         setLoading(true);
         setHasError(false);
         setApplicationsLoaded(false);
 
         try {
-            const recruiterJobs = await getMyJobs();
+            const recruiterJobsPage = await getMyJobsPage({
+                page,
+                size: pageSize,
+            });
+            const recruiterJobs = recruiterJobsPage.content;
             setJobs(recruiterJobs);
+            setPagination(recruiterJobsPage);
+            setCurrentPage(recruiterJobsPage.number);
 
             if (recruiterJobs.length === 0) {
                 setApplicationsByJob({});
@@ -93,69 +118,69 @@ const RecruiterDashboard: React.FC = () => {
 
     return (
         <DashboardShell
-            eyebrow="Recruiter workspace"
-            title={`Good to see you, ${fullName}`}
-            description="Keep your openings organised and move the right candidates forward."
+            eyebrow={t("recruiter.workspace")}
+            title={t("recruiter.greeting", { name: fullName })}
+            description={t("recruiter.dashboardDescription")}
             actions={
                 <Link to="/recruiter/jobs/create" className="btn btn-primary">
                     <Plus size={17} aria-hidden="true" />
-                    Create job
+                    {t("recruiter.createJob")}
                 </Link>
             }
         >
             {hasError && (
                 <ErrorState
                     message="Some job or application counts are unavailable. They are shown as a dash instead of an incomplete total."
-                    onRetry={() => void loadDashboardData()}
+                    onRetry={() => void loadDashboardData(currentPage)}
                 />
             )}
 
             <div className="dashboard-metrics">
                 <MetricCard
-                    label="My jobs"
-                    value={loading ? "…" : jobs ? jobs.length : "—"}
-                    hint="All job records"
+                    label={t("recruiter.myJobs")}
+                    value={loading ? "…" : pagination ? pagination.totalElements : "—"}
+                    hint={t("recruiter.allJobRecords")}
                     icon={<BriefcaseBusiness size={21} />}
                     tone="blue"
                 />
                 <MetricCard
-                    label="Published jobs"
+                    label={t("recruiter.publishedJobs")}
                     value={loading ? "…" : publishedJobs ?? "—"}
-                    hint="Visible to candidates"
+                    hint={t("recruiter.visibleCandidates")}
                     icon={<BriefcaseBusiness size={21} />}
                     tone="green"
                 />
                 <MetricCard
-                    label="Applications"
+                    label={t("recruiter.applications")}
                     value={loading ? "…" : applicationsLoaded ? allApplications.length : "—"}
-                    hint="Across your jobs"
+                    hint={t("recruiter.acrossJobs")}
                     icon={<FileText size={21} />}
                     tone="violet"
                 />
                 <MetricCard
-                    label="Needs review"
+                    label={t("recruiter.needsReview")}
                     value={loading ? "…" : needsAttention ?? "—"}
-                    hint={shortlisted === null ? "Pending or reviewing" : `${shortlisted} shortlisted`}
+                    hint={shortlisted === null ? t("recruiter.pendingReviewing") : t("recruiter.shortlisted", { count: shortlisted })}
                     icon={<UsersRound size={21} />}
                     tone="amber"
                 />
             </div>
 
             <SectionCard
-                title="Your jobs"
-                description="Application counts are loaded per job from the recruiter API."
+                title={t("recruiter.yourJobs")}
+                description={t("recruiter.applicationCounts")}
             >
-                {loading && <div className="dashboard-state">Loading jobs and applications…</div>}
+                {loading && <div className="dashboard-state">{t("recruiter.loadingJobs")}</div>}
                 {!loading && jobs === null && (
-                    <div className="dashboard-state">Your jobs are unavailable right now.</div>
+                    <div className="dashboard-state">{t("recruiter.jobsUnavailable")}</div>
                 )}
                 {!loading && jobs && jobs.length === 0 && (
                     <EmptyState
-                        title="No jobs created yet"
-                        description="Create your first opening to start receiving applications."
+                        title={t("recruiter.noJobs")}
+                        description={t("recruiter.noJobsDescription")}
                         action={
                             <Link to="/recruiter/jobs/create" className="btn btn-primary btn-sm">
-                                Create a job
+                                {t("recruiter.createAJob")}
                             </Link>
                         }
                     />
@@ -165,10 +190,10 @@ const RecruiterDashboard: React.FC = () => {
                         <table className="dashboard-table">
                             <thead>
                                 <tr>
-                                    <th scope="col">Job</th>
-                                    <th scope="col">Status</th>
-                                    <th scope="col">Applications</th>
-                                    <th scope="col">Deadline</th>
+                                    <th scope="col">{t("recruiter.job")}</th>
+                                    <th scope="col">{t("recruiter.status")}</th>
+                                    <th scope="col">{t("recruiter.applicationCount")}</th>
+                                    <th scope="col">{t("recruiter.deadline")}</th>
                                     <th scope="col"><span className="visually-hidden">Action</span></th>
                                 </tr>
                             </thead>
@@ -178,7 +203,7 @@ const RecruiterDashboard: React.FC = () => {
                                         <td>
                                             <span className="dashboard-primary-cell">{job.title}</span>
                                             <span className="dashboard-secondary-cell">
-                                                {job.location || "Location not provided"} · {formatEmploymentType(job.employmentType)}
+                                                    {job.location || t("job.locationUnavailable")} · {formatEmploymentType(job.employmentType)}
                                             </span>
                                         </td>
                                         <td><StatusBadge status={job.status} /></td>
@@ -194,19 +219,19 @@ const RecruiterDashboard: React.FC = () => {
                                                     to={`/recruiter/jobs/${job.id}`}
                                                     className="dashboard-link dashboard-table-action"
                                                 >
-                                                    <Eye size={15} aria-hidden="true" /> View
+                                                    <Eye size={15} aria-hidden="true" /> {t("recruiter.view")}
                                                 </Link>
                                                 <Link
                                                     to={`/recruiter/jobs/${job.id}/edit`}
                                                     className="dashboard-link dashboard-table-action"
                                                 >
-                                                    <Edit3 size={15} aria-hidden="true" /> Edit
+                                                    <Edit3 size={15} aria-hidden="true" /> {t("recruiter.edit")}
                                                 </Link>
                                                 <Link
                                                     to={`/recruiter/jobs/${job.id}/applications`}
                                                     className="dashboard-link dashboard-table-action"
                                                 >
-                                                    Review Applications <ArrowRight size={15} aria-hidden="true" />
+                                                    {t("recruiter.reviewApplications")} <ArrowRight size={15} aria-hidden="true" />
                                                 </Link>
                                             </div>
                                         </td>
@@ -216,10 +241,51 @@ const RecruiterDashboard: React.FC = () => {
                         </table>
                     </div>
                 )}
+                {!loading && jobs && jobs.length > 0 && pagination && pagination.totalPages > 0 && (
+                    <div className="recruiter-list-pagination">
+                        <span className="recruiter-list-pagination-summary">
+                            {pagination.number * pagination.size + 1}–{Math.min(
+                                (pagination.number + 1) * pagination.size,
+                                pagination.totalElements
+                            )} / {pagination.totalElements}
+                        </span>
+                        <div className="recruiter-list-pagination-controls" aria-label={t("recruiter.jobsPagination")}>
+                            <button
+                                type="button"
+                                className="admin-page-button"
+                                onClick={() => void loadDashboardData(currentPage - 1)}
+                                disabled={pagination.first}
+                                aria-label={t("recruiter.previousPage")}
+                            >
+                                <ChevronLeft size={15} aria-hidden="true" />
+                            </button>
+                            {getPageNumbers(currentPage, pagination.totalPages).map((page) => (
+                                <button
+                                    type="button"
+                                    key={page}
+                                    className={`admin-page-button ${page === currentPage ? "active" : ""}`}
+                                    onClick={() => void loadDashboardData(page)}
+                                    aria-current={page === currentPage ? "page" : undefined}
+                                >
+                                    {page + 1}
+                                </button>
+                            ))}
+                            <button
+                                type="button"
+                                className="admin-page-button"
+                                onClick={() => void loadDashboardData(currentPage + 1)}
+                                disabled={pagination.last}
+                                aria-label={t("recruiter.nextPage")}
+                            >
+                                <ChevronRight size={15} aria-hidden="true" />
+                            </button>
+                        </div>
+                    </div>
+                )}
             </SectionCard>
 
             <p className="dashboard-kpi-note">
-                AI match percentages support human review; they should not be used as the only hiring criterion.
+                {t("recruiter.aiNote")}
             </p>
         </DashboardShell>
     );
