@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import JobCard from "../../components/JobCard";
 import { ArrowDownUp, SlidersHorizontal, X } from "lucide-react";
 import {
@@ -20,6 +20,7 @@ const Jobs: React.FC = () => {
     const [jobs, setJobs] = useState<Job[]>([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
+    const jobsRequestId = useRef(0);
 
     const [selectedJob, setSelectedJob] = useState<Job | null>(null);
     const [filtersOpen, setFiltersOpen] = useState(false);
@@ -55,6 +56,7 @@ const Jobs: React.FC = () => {
         filters.minSalary !== undefined,
         filters.maxSalary !== undefined,
     ].filter(Boolean).length;
+    const hasPendingMatches = jobs.some((job) => job.matchingPending);
 
     // Keep the selected page valid when a filter reduces the result count.
     // The initial request should use the default filter snapshot only. Later
@@ -118,7 +120,45 @@ const Jobs: React.FC = () => {
     // LOAD JOBS
     // =====================================================
 
+    const pollPendingMatches = async (
+        requestedFilters: JobFilterRequest,
+        requestId: number,
+        initialData: Job[]
+    ) => {
+        let latestData = initialData;
+
+        for (let attempt = 0; attempt < 30; attempt += 1) {
+            if (
+                requestId !== jobsRequestId.current ||
+                !latestData.some((job) => job.matchingPending)
+            ) {
+                return;
+            }
+
+            await new Promise((resolve) => window.setTimeout(resolve, 700));
+
+            if (requestId !== jobsRequestId.current) {
+                return;
+            }
+
+            try {
+                latestData = await filterJobs(requestedFilters);
+
+                if (requestId !== jobsRequestId.current) {
+                    return;
+                }
+
+                setJobs(latestData);
+            } catch (pollError) {
+                console.error("Failed to refresh pending job matches:", pollError);
+                return;
+            }
+        }
+    };
+
     const loadJobs = async (requestedFilters: JobFilterRequest = filters) => {
+        const requestId = jobsRequestId.current + 1;
+        jobsRequestId.current = requestId;
 
         try {
 
@@ -129,20 +169,33 @@ const Jobs: React.FC = () => {
             // sort also receives AI match scores on the initial load.
             const data = await filterJobs(requestedFilters);
 
+            if (requestId !== jobsRequestId.current) {
+                return;
+            }
+
             setJobs(data);
             setCurrentPage(1);
+
+            // The backend returns cached scores immediately and schedules only
+            // missing CV/job combinations. Refresh those scores without
+            // blocking the initial job list from being displayed.
+            if (data.some((job) => job.matchingPending)) {
+                void pollPendingMatches(requestedFilters, requestId, data);
+            }
 
         } catch (err) {
 
             console.error(err);
 
-            setError(
-                "Failed to load jobs. Please try again."
-            );
+            if (requestId === jobsRequestId.current) {
+                setError("Failed to load jobs. Please try again.");
+            }
 
         } finally {
 
-            setLoading(false);
+            if (requestId === jobsRequestId.current) {
+                setLoading(false);
+            }
 
         }
     };
@@ -550,21 +603,36 @@ const Jobs: React.FC = () => {
                 </div>
             )}
 
+            {!loading && hasPendingMatches && (
+                <div className="jobs-matching-notice" role="status" aria-live="polite">
+                    <span className="jobs-matching-spinner" aria-hidden="true" />
+                    <div>
+                        <strong>{t("jobs.cvMatchingInProgress")}</strong>
+                        <p>{t("jobs.cvMatchingInProgressDescription")}</p>
+                    </div>
+                </div>
+            )}
+
 
             {/* LOADING */}
 
             {loading && (
 
-                <div className="jobs-state">
+                <div className="jobs-state" role="status" aria-live="polite">
 
                     <div
                         className="spinner-border text-primary"
                         role="status"
                     />
 
-                    <p className="text-muted mt-2">
-                        {t("jobs.loading")}
-                    </p>
+                    <div className="jobs-loading-copy">
+                        <p className="jobs-loading-title">
+                            {t("jobs.matchingInProgress")}
+                        </p>
+                        <p className="jobs-loading-description">
+                            {t("jobs.matchingInProgressDescription")}
+                        </p>
+                    </div>
 
                 </div>
 

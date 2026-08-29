@@ -8,6 +8,7 @@ import {
 } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
+import MatchManual from "./components/MatchManual";
 import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/admin/AdminDashboard";
 import AdminProfile from "./pages/admin/AdminProfile";
@@ -203,6 +204,7 @@ const AppRoutes: React.FC = () => {
                     }
                 />
             </Routes>
+            <MatchManual />
         </>
     );
 };

@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowRight, BriefcaseBusiness, ChevronLeft, ChevronRight, Edit3, Eye, FileText, Plus, UsersRound } from "lucide-react";
+import { BriefcaseBusiness, ChevronLeft, ChevronRight, Edit3, Eye, FileText, Plus, UsersRound } from "lucide-react";
 import { Link } from "react-router-dom";
 
 import { getApplicationsWithCandidate } from "../../services/applicationService";
@@ -226,12 +226,6 @@ const RecruiterDashboard: React.FC = () => {
                                                     className="dashboard-link dashboard-table-action"
                                                 >
                                                     <Edit3 size={15} aria-hidden="true" /> {t("recruiter.edit")}
-                                                </Link>
-                                                <Link
-                                                    to={`/recruiter/jobs/${job.id}/applications`}
-                                                    className="dashboard-link dashboard-table-action"
-                                                >
-                                                    {t("recruiter.reviewApplications")} <ArrowRight size={15} aria-hidden="true" />
                                                 </Link>
                                             </div>
                                         </td>

@@ -107,10 +107,21 @@ const getPageNumbers = (currentPage: number, totalPages: number) => {
     return Array.from({ length: 7 }, (_, index) => currentPage - 3 + index);
 };
 
-const JobApplications: React.FC = () => {
-    const { jobId } = useParams<{ jobId: string }>();
+interface JobApplicationsProps {
+    embedded?: boolean;
+    job?: Job | null;
+    jobId?: number;
+}
+
+const JobApplications: React.FC<JobApplicationsProps> = ({
+    embedded = false,
+    job: providedJob = null,
+    jobId: providedJobId,
+}) => {
+    const { jobId: routeJobId } = useParams<{ jobId: string }>();
     const navigate = useNavigate();
     const { t } = useLanguage();
+    const numericJobId = providedJobId ?? (routeJobId ? Number(routeJobId) : NaN);
     const localizedStatusLabel = (status: string) => {
         const key = status.toLowerCase().replace("_", "");
         const translations: Record<string, string> = {
@@ -129,7 +140,7 @@ const JobApplications: React.FC = () => {
         };
         return translations[key] || statusLabel(status);
     };
-    const [job, setJob] = useState<Job | null>(null);
+    const [job, setJob] = useState<Job | null>(providedJob);
     const [applications, setApplications] = useState<Application[] | null>(null);
     const [pagination, setPagination] = useState<ApplicationPage | null>(null);
     const [loading, setLoading] = useState(true);
@@ -143,7 +154,11 @@ const JobApplications: React.FC = () => {
     const [pageSize, setPageSize] = useState(10);
 
     const loadJob = useCallback(async () => {
-        if (!jobId) {
+        if (embedded) {
+            return;
+        }
+
+        if (!Number.isFinite(numericJobId)) {
             setError(t("recruiter.jobsUnavailable"));
             return;
         }
@@ -151,21 +166,21 @@ const JobApplications: React.FC = () => {
         setError("");
 
         try {
-            setJob(await getMyJobById(Number(jobId)));
+            setJob(await getMyJobById(numericJobId));
         } catch (loadError) {
             console.error("Failed to load job applications:", loadError);
             setError(t("recruiter.applicationsDescription"));
         }
-    }, [jobId, t]);
+    }, [embedded, numericJobId, t]);
 
     const loadApplications = useCallback(async (page = 0) => {
-        if (!jobId) return;
+        if (!Number.isFinite(numericJobId)) return;
 
         setLoading(true);
         setError("");
 
         try {
-            const result = await getApplicationsWithCandidatePage(Number(jobId), {
+            const result = await getApplicationsWithCandidatePage(numericJobId, {
                 page,
                 size: pageSize,
                 search: searchTerm.trim(),
@@ -182,7 +197,13 @@ const JobApplications: React.FC = () => {
         } finally {
             setLoading(false);
         }
-    }, [applicationFilter, jobId, pageSize, searchTerm, t]);
+    }, [applicationFilter, numericJobId, pageSize, searchTerm, t]);
+
+    useEffect(() => {
+        if (providedJob) {
+            setJob(providedJob);
+        }
+    }, [providedJob]);
 
     useEffect(() => {
         void loadJob();
@@ -299,32 +320,8 @@ const JobApplications: React.FC = () => {
         };
     });
 
-    return (
-        <DashboardShell
-            eyebrow={t("recruiter.candidateProfile")}
-            title={job?.title || t("recruiter.applicationsTitle")}
-            description={
-                job
-                    ? `${job.companyName || t("recruiter.company")} · ${applications?.length ?? 0} ${t("recruiter.applications")}`
-                    : t("recruiter.applicationsDescription")
-            }
-            actions={
-                <div className="d-flex flex-wrap gap-2">
-                    <Link to={`/recruiter/jobs/${jobId || ""}`} className="btn btn-outline-secondary">
-                        <BriefcaseBusiness size={16} aria-hidden="true" />
-                        {t("recruiter.jobDetails")}
-                    </Link>
-                    <button
-                        type="button"
-                        className="btn btn-outline-secondary"
-                        onClick={() => navigate("/recruiter/jobs")}
-                    >
-                        <ArrowLeft size={17} aria-hidden="true" />
-                        {t("recruiter.backToJobs")}
-                    </button>
-                </div>
-            }
-        >
+    const content = (
+        <>
             {error && <ErrorState message={error} onRetry={() => void loadApplications(currentPage)} />}
 
             <div className="dashboard-metrics">
@@ -351,7 +348,7 @@ const JobApplications: React.FC = () => {
                 />
             </div>
 
-            <SectionCard
+            {!embedded && <SectionCard
                 className="recruiter-application-job-card"
                 title={t("recruiter.openingSummary")}
                 description={t("recruiter.openingSummaryDescription")}
@@ -391,7 +388,7 @@ const JobApplications: React.FC = () => {
                         </ul>
                     </div>
                 )}
-            </SectionCard>
+            </SectionCard>}
 
             <SectionCard
                 title={t("recruiter.applications")}
@@ -655,6 +652,40 @@ const JobApplications: React.FC = () => {
             )}
 
             <p className="dashboard-kpi-note">{t("recruiter.aiReviewNote")}</p>
+        </>
+    );
+
+    if (embedded) {
+        return <div className="recruiter-embedded-applications">{content}</div>;
+    }
+
+    return (
+        <DashboardShell
+            eyebrow={t("recruiter.candidateProfile")}
+            title={job?.title || t("recruiter.applicationsTitle")}
+            description={
+                job
+                    ? `${job.companyName || t("recruiter.company")} · ${applications?.length ?? 0} ${t("recruiter.applications")}`
+                    : t("recruiter.applicationsDescription")
+            }
+            actions={
+                <div className="d-flex flex-wrap gap-2">
+                    <Link to={`/recruiter/jobs/${Number.isFinite(numericJobId) ? numericJobId : ""}`} className="btn btn-outline-secondary">
+                        <BriefcaseBusiness size={16} aria-hidden="true" />
+                        {t("recruiter.jobDetails")}
+                    </Link>
+                    <button
+                        type="button"
+                        className="btn btn-outline-secondary"
+                        onClick={() => navigate("/recruiter/jobs")}
+                    >
+                        <ArrowLeft size={17} aria-hidden="true" />
+                        {t("recruiter.backToJobs")}
+                    </button>
+                </div>
+            }
+        >
+            {content}
         </DashboardShell>
     );
 };

@@ -45,6 +45,7 @@ const matchTypeTone = (matchType?: string) => {
     switch (matchType) {
         case "explicit":
         case "canonical":
+        case "inferred":
         case "semantic":
             return "matched";
         case "related":
@@ -122,7 +123,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({
             ? t("recruiter.niceToHave")
             : t("recruiter.important");
     const localizedMatchTypeLabel = (matchType?: string) => {
-        if (matchType === "explicit" || matchType === "canonical") return t("job.matched");
+        if (matchType === "explicit" || matchType === "canonical" || matchType === "inferred") return t("job.matched");
         if (matchType === "semantic") return t("status.matched");
         if (matchType === "related") return t("job.related");
         return t("job.missing");
@@ -175,10 +176,21 @@ const JobDetails: React.FC<JobDetailsProps> = ({
         [job, requiredSkills]
     );
 
+    const today = new Date();
+    const todayIso = [
+        today.getFullYear(),
+        String(today.getMonth() + 1).padStart(2, "0"),
+        String(today.getDate()).padStart(2, "0"),
+    ].join("-");
+    const deadlineHasPassed = Boolean(
+        job.applicationDeadline && job.applicationDeadline < todayIso
+    );
+    const applicationsClosed = job.status === "CLOSED" || deadlineHasPassed;
+
     const handleApply = async (event: React.FormEvent) => {
         event.preventDefault();
 
-        if (hasApplied || loading) {
+        if (hasApplied || loading || applicationsClosed) {
             return;
         }
 
@@ -505,6 +517,11 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                             <CheckCircle2 size={21} aria-hidden="true" />
                                              <div><strong>{t("job.allSet")}</strong><p>{t("job.withRecruiter")}</p></div>
                                         </div>
+                                    ) : applicationsClosed ? (
+                                        <div className="job-apply-complete">
+                                            <AlertCircle size={21} aria-hidden="true" />
+                                            <div><strong>{t("recruiter.closed")}</strong><p>{t("recruiter.jobClosedDescription")}</p></div>
+                                        </div>
                                     ) : (
                                         <form onSubmit={handleApply}>
                                              <label className="job-apply-label" htmlFor="cover-letter">{t("job.coverLetter")}</label>
@@ -522,7 +539,7 @@ const JobDetails: React.FC<JobDetailsProps> = ({
                                             {error && <div className="job-details-form-alert error" role="alert"><AlertCircle size={16} aria-hidden="true" />{error}</div>}
                                             {success && <div className="job-details-form-alert success" role="status"><CheckCircle2 size={16} aria-hidden="true" />{success}</div>}
 
-                                            <button type="submit" className="job-apply-button" disabled={loading}>
+                                            <button type="submit" className="job-apply-button" disabled={loading || applicationsClosed}>
                                                 <Send size={16} aria-hidden="true" />
                                                  {loading ? t("common.loading") : t("job.applyFor")}
                                             </button>

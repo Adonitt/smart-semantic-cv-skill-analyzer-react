@@ -121,6 +121,23 @@ const CreateJob: React.FC = () => {
         setForm((current) => ({ ...current, [field]: value }));
     };
 
+    const handleDeadlineChange = (deadline: string) => {
+        const today = new Date();
+        const todayIso = [
+            today.getFullYear(),
+            String(today.getMonth() + 1).padStart(2, "0"),
+            String(today.getDate()).padStart(2, "0"),
+        ].join("-");
+
+        setForm((current) => ({
+            ...current,
+            applicationDeadline: deadline,
+            ...(isEditing && Boolean(deadline) && deadline < todayIso
+                ? { status: "CLOSED" as JobStatus }
+                : {}),
+        }));
+    };
+
     const handleSubmit = async (event: React.FormEvent) => {
         event.preventDefault();
         setError("");
@@ -360,7 +377,7 @@ const CreateJob: React.FC = () => {
                                 type="date"
                                 className="form-control"
                                 value={form.applicationDeadline}
-                                onChange={(event) => updateField("applicationDeadline", event.target.value)}
+                                onChange={(event) => handleDeadlineChange(event.target.value)}
                                 required
                             />
                         </div>

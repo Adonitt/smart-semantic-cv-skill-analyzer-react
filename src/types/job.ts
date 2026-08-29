@@ -73,6 +73,7 @@ export interface Job {
 
     // AI Matching
     matchPercentage?: number | null;
+    matchingPending?: boolean;
 
     skillCoverage?: number;
     weightedSkillScore?: number;
